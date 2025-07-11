@@ -7,6 +7,7 @@ function wtm --description "Git worktree manager with advanced features"
         echo ""
         echo "USAGE:"
         echo "  wtm [options]                    - Interactive worktree selection with fzf"
+        echo "  wtm open <branch>                - Open existing worktree"
         echo "  wtm add <branch> [options]       - Create new branch and worktree"
         echo "  wtm remove <branch> [options]    - Remove worktree and branch"
         echo "  wtm list [options]               - List all worktrees"
@@ -33,6 +34,27 @@ function wtm --description "Git worktree manager with advanced features"
         echo "  wtm add feature/new-ui          - Create new feature branch"
         echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
         echo "  wtm main                         - Switch to main branch"
+    end
+
+    # Handle help flag
+    function __wtm_open_help
+        echo "╭──────────────────────────────────────────────────────────╮"
+        echo "│ wtm open - Open existing worktree                        │"
+        echo "╰──────────────────────────────────────────────────────────╯"
+        echo ""
+        echo "USAGE:"
+        echo "  wtm open [<branch>] [options]"
+        echo ""
+        echo "OPTIONS:"
+        echo "  -h, --help            Show this help message"
+        echo ""
+        echo "DESCRIPTION:"
+        echo "  Open an existing worktree by branch name."
+        echo "  If no branch is specified, interactive selection with fzf is used."
+        echo ""
+        echo "EXAMPLES:"
+        echo "  wtm open                      - Interactive selection"
+        echo "  wtm open feature/my-feature   - Open specific branch"
     end
 
     # Define subcommand help functions
@@ -137,6 +159,9 @@ function wtm --description "Git worktree manager with advanced features"
     switch "$cmd"
         case "" # Interactive selection
             __wtm_interactive -- $verbose $quiet
+
+        case open
+            __wtm_open -- $argv $verbose $quiet
 
         case add
             __wtm_add -- $argv $verbose $quiet
@@ -291,9 +316,13 @@ function __wtm_interactive
         --prompt="› " \
         --ansi)
 
-    if test -n "$selected_branch"
+    __wtm_open_branch "$selected_branch"
+end
+
+function __wtm_open_branch -a branch
+    if test -n "$branch"
         # Find the worktree path for the selected branch
-        set -l worktree_info (git worktree list | grep "\[$selected_branch\]")
+        set -l worktree_info (git worktree list | grep "\[$branch\]")
         set -l worktree_path (echo $worktree_info | string split -f1 ' ')
         set -l resolved_path (path resolve $worktree_path)
 
@@ -305,6 +334,33 @@ function __wtm_interactive
             echo "Error: Directory not found: $worktree_path" >&2
             return 1
         end
+    end
+end
+
+# Open existing worktree
+function __wtm_open
+    # The first argument is always "--", followed by actual arguments, then verbose and quiet
+    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l verbose $argv[-2]
+    set -l quiet $argv[-1]
+
+    # Parse open-specific options
+    argparse 'h/help' -- $actual_argv
+    or return 1
+
+    # Handle help flag
+    if set -ql _flag_help
+        __wtm_open_help
+        return 0
+    end
+
+    set -l branch_name $argv[1]
+
+    # If no branch name provided, use fzf for interactive selection
+    if test -z "$branch_name"
+        __wtm_interactive
+    else
+        __wtm_open_branch "$branch_name"
     end
 end
 

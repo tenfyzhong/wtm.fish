@@ -17,7 +17,11 @@ complete -c wtm -n "__fish_use_subcommand" -a ls -d "List all worktrees"
 complete -c wtm -n "__fish_use_subcommand" -a clean -d "Clean up stale worktrees"
 complete -c wtm -n "__fish_use_subcommand" -a init -d "Create .wt_hook.fish template"
 complete -c wtm -n "__fish_use_subcommand" -a main -d "Switch to default branch (main/master)"
+complete -c wtm -n "__fish_use_subcommand" -a open -d "Open existing worktree"
 complete -c wtm -n "__fish_use_subcommand" -a help -d "Show help message"
+
+complete -c wtm -n "__fish_seen_subcommand_from open" -xa "(__wtm_git_worktree_branches)"
+complete -c wtm -n "__fish_seen_subcommand_from open" -s h -l help -d "Show help for open command"
 
 # Options for 'add' subcommand
 complete -c wtm -n "__fish_seen_subcommand_from add" -s b -l base -xa "(git branch --format='%(refname:short)')" -d "Base branch (default: main)"

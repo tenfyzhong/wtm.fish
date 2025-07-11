@@ -68,6 +68,15 @@ wtm add hotfix/urgent-fix --base develop
 wtm add feature/continue-work --sync
 ```
 
+### Open a Worktree
+
+The `open` subcommand provides similar functionality to the interactive mode but allows specifying a branch directly. It's useful for scripting or when you know exactly which worktree you want to open.
+
+```fish
+# Open the worktree of the current feature/feature-1
+wtm open feature/feature-1
+```
+
 ### Remove a Worktree
 
 ```fish
@@ -121,6 +130,7 @@ wtm init
 | `wtm clean` | Clean up stale worktrees with no uncommitted changes |
 | `wtm init` | Create a project-specific hook template (`.wtm_hook.fish`) |
 | `wtm main` | Switch to main/master branch |
+| `wtm open [<branch>]` | Open existing worktree (interactive if no branch specified) |
 
 ### Global Options
 
