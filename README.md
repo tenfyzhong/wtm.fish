@@ -64,6 +64,8 @@ Worktrees are stored in the `.git/wtm_data/` directory of your repository.
 wtm add feature/new-feature
 # Create from specific base branch
 wtm add hotfix/urgent-fix --base develop
+# Create a worktree from an existing branch
+wtm add existing-feature-branch
 # Create and sync current changes
 wtm add feature/continue-work --sync
 ```
@@ -124,7 +126,7 @@ wtm init
 | Command | Description |
 |---------|-------------|
 | `wtm` | Interactive worktree selection with fzf |
-| `wtm add <branch>` | Create new branch and worktree |
+| `wtm add <branch>` | Create new worktree, and a new branch if it doesn't exist |
 | `wtm remove [<branch>]` | Remove worktree and branch |
 | `wtm list` | List all worktrees |
 | `wtm clean` | Clean up stale worktrees with no uncommitted changes |

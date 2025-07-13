@@ -28,6 +28,7 @@ complete -c wtm -n "__fish_seen_subcommand_from add" -s b -l base -xa "(git bran
 complete -c wtm -n "__fish_seen_subcommand_from add" -l sync -d "Sync staged/modified/untracked files"
 complete -c wtm -n "__fish_seen_subcommand_from add" -l no-hook -d "Skip hook execution"
 complete -c wtm -n "__fish_seen_subcommand_from add" -s h -l help -d "Show help for add command"
+complete -c wtm -n "__fish_seen_subcommand_from add" -xa "(git branch --format='%(refname:short)')" -d "The branch to create worktree for"
 
 # Options for 'remove' subcommand
 # Complete with branch names from worktrees (excluding main/master and current branch)

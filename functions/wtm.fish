@@ -521,9 +521,25 @@ function __wtm_add
     # Create worktree
     test "$quiet" = false; and echo "Creating worktree for branch '$branch_name'..."
 
-    if git worktree add -b "$branch_name" "$worktree_path" "$base_branch" &>/tmp/wtm_add.log
+    set -l worktree_add_cmd "git" "worktree" "add"
+    set -l success_message_branch_info
+
+    # Check if branch already exists
+    if git rev-parse --verify "$branch_name" &>/dev/null
+        # Branch exists, create worktree from it
+        test "$verbose" = true; and echo "Branch '$branch_name' exists, creating worktree from it."
+        set -a worktree_add_cmd "$worktree_path" "$branch_name"
+        set success_message_branch_info "Branch: $branch_name (existing)"
+    else
+        # Branch doesn't exist, create new branch
+        test "$verbose" = true; and echo "Branch '$branch_name' does not exist, creating new branch."
+        set -a worktree_add_cmd "-b" "$branch_name" "$worktree_path" "$base_branch"
+        set success_message_branch_info "Branch: $branch_name (based on $base_branch)"
+    end
+
+    if $worktree_add_cmd &>/tmp/wtm_add.log
         test "$quiet" = false; and echo "[OK] Created worktree at: $worktree_path"
-        test "$quiet" = false; and echo "     Branch: $branch_name (based on $base_branch)"
+        test "$quiet" = false; and echo "     $success_message_branch_info"
 
         # Store project root
         set -l project_root (git rev-parse --show-toplevel)
