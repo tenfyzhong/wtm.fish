@@ -20,7 +20,7 @@ complete -c wtm -n "__fish_use_subcommand" -a main -d "Switch to default branch 
 complete -c wtm -n "__fish_use_subcommand" -a open -d "Open existing worktree"
 complete -c wtm -n "__fish_use_subcommand" -a help -d "Show help message"
 
-complete -c wtm -n "__fish_seen_subcommand_from open" -xa "(__wtm_git_worktree_branches)"
+complete -c wtm -n "__fish_seen_subcommand_from open" -xa "(__wtm_git_worktree_branches --exclude-current)"
 complete -c wtm -n "__fish_seen_subcommand_from open" -s h -l help -d "Show help for open command"
 
 # Options for 'add' subcommand
@@ -31,7 +31,7 @@ complete -c wtm -n "__fish_seen_subcommand_from add" -s h -l help -d "Show help 
 
 # Options for 'remove' subcommand
 # Complete with branch names from worktrees (excluding main/master and current branch)
-complete -c wtm -n "__fish_seen_subcommand_from remove rm" -xa "(__wtm_git_worktree_branches)"
+complete -c wtm -n "__fish_seen_subcommand_from remove rm" -xa "(__wtm_git_worktree_branches --exclude-current --exclude-main)"
 complete -c wtm -n "__fish_seen_subcommand_from remove rm" -s h -l help -d "Show help for remove command"
 
 # Options for 'list' subcommand
@@ -44,6 +44,8 @@ complete -c wtm -n "__fish_seen_subcommand_from clean" -s h -l help -d "Show hel
 
 # Helper function to get worktree branches (excluding main/master)
 function __wtm_git_worktree_branches --description "Get worktree branches for completion"
+    argparse -s 'exclude-current' 'exclude-main' -- $argv
+
     # Get current branch to exclude it
     set -l current_branch (git branch --show-current 2>/dev/null)
 
@@ -52,8 +54,14 @@ function __wtm_git_worktree_branches --description "Get worktree branches for co
         set -l branch (echo $line | string match -r '\[([^\]]+)\]' | string split -f2 '[' | string trim -c ']')
         # Exclude main, master, and current branch
         if test -n "$branch"
-            and not string match -qr '^(main|master)$' "$branch"
-            and test "$branch" != "$current_branch"
+            # and not string match -qr '^(main|master)$' "$branch"
+            # and test "$branch" != "$current_branch"
+            if set -ql _flag_exclude_current; and test "$branch" = "$current_branch"
+                continue
+            end
+            if set -ql _flag_exclude_main; and string match -qr '^(main|master)$' "$branch"
+                continue
+            end
             echo $branch
         end
     end
