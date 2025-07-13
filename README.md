@@ -84,8 +84,10 @@ wtm open feature/feature-1
 ```fish
 # Interactive selection
 wtm remove
-# Remove specific branch
+# Remove the path of the specific branch
 wtm remove feature/old-feature
+# Remove specific branch and path
+wtm remove -b feature/old-feature
 ```
 
 ### List All Worktrees
@@ -145,6 +147,10 @@ wtm init
 - `-b, --base <branch>` - Base branch (default: main)
 - `--sync` - Sync staged/modified/untracked files from current branch
 - `--no-hook` - Skip hook execution (.wtm_hook.fish or global hook)
+
+### Remove Options
+
+- `-b, --branch` - Remove the branch as well
 
 ### Clean Options
 

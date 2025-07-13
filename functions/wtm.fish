@@ -80,13 +80,14 @@ function wtm --description "Git worktree manager with advanced features"
 
     function __wtm_remove_help
         echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm remove - Remove worktree and branch                  │"
+        echo "│ wtm remove - Remove worktree and optionally branch       │"
         echo "╰──────────────────────────────────────────────────────────╯"
         echo ""
         echo "USAGE:"
         echo "  wtm remove [<branch>] [options]"
         echo ""
         echo "OPTIONS:"
+        echo "  -b, --branch          Remove the branch as well (default: false)"
         echo "  -h, --help            Show this help message"
         echo ""
         echo "DESCRIPTION:"
@@ -95,8 +96,9 @@ function wtm --description "Git worktree manager with advanced features"
         echo "  Protected branches (main/master) and current branch cannot be removed."
         echo ""
         echo "EXAMPLES:"
-        echo "  wtm remove                      - Interactive selection"
-        echo "  wtm remove feature/old-ui       - Remove specific branch"
+        echo "  wtm remove                          - Interactive selection"
+        echo "  wtm remove feature/old-ui           - Remove specific branch"
+        echo "  wtm remove feature/old-ui --branch  - Remove worktree and branch"
     end
 
     function __wtm_list_help
@@ -643,7 +645,7 @@ function __wtm_remove
     set -l quiet $argv[-1]
 
     # Parse remove-specific options
-    argparse 'h/help' -- $actual_argv
+    argparse 'h/help' 'b/branch' -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -781,7 +783,11 @@ function __wtm_remove
 
     # Confirmation with default to yes
     echo "Remove worktree at: $resolved_path"
-    echo "This will also delete branch: $branch_name"
+    if set -ql _flag_branch
+        echo "This will also delete branch: $branch_name"
+    else
+        echo "The branch '$branch_name' will be kept"
+    end
 
     read -l -P "Are you sure? (Y/n) " confirm
     if string match -qi 'n' $confirm
@@ -794,12 +800,15 @@ function __wtm_remove
     if git worktree remove --force "$worktree_path" &>/tmp/wtm_remove.log
         test "$quiet" = false; and echo "[OK] Removed worktree: $resolved_path"
 
-        # Delete branch
-        if git branch -D "$branch_name" &>>/tmp/wtm_remove.log
-            test "$quiet" = false; and echo "[OK] Deleted branch: $branch_name"
-        else
-            echo "[WARN] Failed to delete branch: $branch_name" >&2
-            test "$verbose" = true; and cat /tmp/wtm_remove.log >&2
+        # Make branch deletion conditional
+        if set -ql _flag_branch
+            # Delete branch
+            if git branch -D "$branch_name" &>>/tmp/wtm_remove.log
+                test "$quiet" = false; and echo "[OK] Deleted branch: $branch_name"
+            else
+                echo "[WARN] Failed to delete branch: $branch_name" >&2
+                test "$verbose" = true; and cat /tmp/wtm_remove.log >&2
+            end
         end
     else
         echo "Error: Failed to remove worktree" >&2
