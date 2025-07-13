@@ -88,17 +88,20 @@ function wtm --description "Git worktree manager with advanced features"
         echo ""
         echo "OPTIONS:"
         echo "  -b, --branch          Remove the branch as well (default: false)"
+        echo "  -f, --force           Force removal of worktree with uncommitted changes or unmerged branches"
         echo "  -h, --help            Show this help message"
         echo ""
         echo "DESCRIPTION:"
         echo "  Remove a worktree and its associated branch."
         echo "  If no branch is specified, interactive selection with fzf is used."
         echo "  Protected branches (main/master) and current branch cannot be removed."
+        echo "  By default, it prevents removing worktrees with uncommitted changes or branches that are not merged."
         echo ""
         echo "EXAMPLES:"
         echo "  wtm remove                          - Interactive selection"
         echo "  wtm remove feature/old-ui           - Remove specific branch"
         echo "  wtm remove feature/old-ui --branch  - Remove worktree and branch"
+        echo "  wtm remove feature/old-ui --branch --force - Force remove worktree and branch"
     end
 
     function __wtm_list_help
@@ -645,7 +648,7 @@ function __wtm_remove
     set -l quiet $argv[-1]
 
     # Parse remove-specific options
-    argparse 'h/help' 'b/branch' -- $actual_argv
+    argparse 'h/help' 'b/branch' 'f/force' -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -795,15 +798,45 @@ function __wtm_remove
         return 0
     end
 
+    # Check for uncommitted changes before removing worktree
+    set -l has_uncommitted_changes (git -C "$resolved_path" status --porcelain 2>/dev/null)
+    if test -n "$has_uncommitted_changes"; and not set -ql _flag_force
+        echo "Error: Worktree has uncommitted changes. Use --force to override." >&2
+        return 1
+    end
+
+    # Check if branch is merged if --branch flag is provided
+    if set -ql _flag_branch; and not set -ql _flag_force
+        set -l default_branch (git symbolic-ref refs/remotes/origin/HEAD | string split -f3 /)
+        set -l is_merged (git branch --merged $default_branch | grep "$branch_name")
+        if test -z "$is_merged"
+            echo "Error: Branch '$branch_name' is not merged into '$default_branch'. Use --force to delete." >&2
+            return 1
+        end
+    end
+
     # Remove worktree
     test "$quiet" = false; and echo "Removing worktree..."
-    if git worktree remove --force "$worktree_path" &>/tmp/wtm_remove.log
+    set -l remove_cmd "git" "worktree" "remove" "$worktree_path"
+    if set -ql _flag_force
+        set -a remove_cmd --force
+    end
+
+    if $remove_cmd &>/tmp/wtm_remove.log
         test "$quiet" = false; and echo "[OK] Removed worktree: $resolved_path"
 
         # Make branch deletion conditional
         if set -ql _flag_branch
             # Delete branch
-            if git branch -D "$branch_name" &>>/tmp/wtm_remove.log
+            set -l delete_branch_cmd "git" "branch"
+            if set -ql _flag_force
+                set -a delete_branch_cmd "-D"
+            else
+                set -a delete_branch_cmd "-d"
+            end
+            set -a delete_branch_cmd "$branch_name"
+
+            if $delete_branch_cmd &>>/tmp/wtm_remove.log
                 test "$quiet" = false; and echo "[OK] Deleted branch: $branch_name"
             else
                 echo "[WARN] Failed to delete branch: $branch_name" >&2

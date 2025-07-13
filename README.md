@@ -151,6 +151,7 @@ wtm init
 ### Remove Options
 
 - `-b, --branch` - Remove the branch as well
+- `-f, --force` - Force removal of worktree with uncommitted changes or unmerged branches
 
 ### Clean Options
 

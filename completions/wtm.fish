@@ -35,6 +35,7 @@ complete -c wtm -n "__fish_seen_subcommand_from add" -xa "(git branch --format='
 complete -c wtm -n "__fish_seen_subcommand_from remove rm" -xa "(__wtm_git_worktree_branches --exclude-current --exclude-main)"
 complete -c wtm -n "__fish_seen_subcommand_from remove rm" -s h -l help -d "Show help for remove command"
 complete -c wtm -n "__fish_seen_subcommand_from remove rm" -s b -l branch -d "Remove the branch as well"
+complete -c wtm -n "__fish_seen_subcommand_from remove rm" -s f -l force -d "Force removal of worktree or branch"
 
 # Options for 'list' subcommand
 complete -c wtm -n "__fish_seen_subcommand_from list ls" -s h -l help -d "Show help for list command"
