@@ -804,7 +804,7 @@ function __wtm_remove
     end
 
     read -l -P "Are you sure? (Y/n) " confirm
-    if string match -qi 'n' $confirm
+    if not string match -qi 'y' $confirm
         echo "Cancelled"
         return 0
     end
