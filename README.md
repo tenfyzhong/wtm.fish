@@ -128,7 +128,7 @@ wtm init
 | Command | Description |
 |---------|-------------|
 | `wtm` | Interactive worktree selection with fzf |
-| `wtm add <branch>` | Create new worktree, and a new branch if it doesn't exist |
+| `wtm add <branch>` | Create new worktree. If the branch doesn't exist locally, it checks for a remote branch and creates a tracking branch if found. Otherwise, it creates a new branch. |
 | `wtm remove [<branch>]` | Remove worktree and branch |
 | `wtm list` | List all worktrees |
 | `wtm clean` | Clean up stale worktrees with no uncommitted changes |

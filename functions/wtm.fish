@@ -536,11 +536,23 @@ function __wtm_add
         set -a worktree_add_cmd "$worktree_path" "$branch_name"
         set success_message_branch_info "Branch: $branch_name (existing)"
     else
-        # Branch doesn't exist, create new branch
-        test "$verbose" = true; and echo "Branch '$branch_name' does not exist, creating new branch."
-        set -a worktree_add_cmd "-b" "$branch_name" "$worktree_path" "$base_branch"
-        set success_message_branch_info "Branch: $branch_name (based on $base_branch)"
+        # Check if branch exists remotely
+        set -l remote_branch (git ls-remote --heads origin "$branch_name" | string split -f1 \t)
+        if test -n "$remote_branch"
+            # Branch exists remotely, create tracking branch
+            set base_branch "origin/$branch_name"
+            test "$verbose" = true; and echo "Branch '$branch_name' exists remotely, creating tracking branch."
+            set -a worktree_add_cmd "--track" "-b" "$branch_name" "$worktree_path" "$base_branch"
+            set success_message_branch_info "Branch: $branch_name (tracking origin/$branch_name)"
+        else
+            # Branch doesn't exist, create new branch
+            test "$verbose" = true; and echo "Branch '$branch_name' does not exist, creating new branch."
+            set -a worktree_add_cmd "-b" "$branch_name" "$worktree_path" "$base_branch"
+            set success_message_branch_info "Branch: $branch_name (based on $base_branch)"
+        end
     end
+
+    test "$verbose" = true; and echo "Command: $worktree_add_cmd"
 
     if $worktree_add_cmd &>/tmp/wtm_add.log
         test "$quiet" = false; and echo "[OK] Created worktree at: $worktree_path"
