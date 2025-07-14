@@ -484,9 +484,8 @@ function __wtm_add
         test "$verbose" = true; and echo "Created directory: $wtm_data_dir"
     end
 
-    # Use branch name for directory, replacing slashes
-    set -l dir_name (string replace -r '/' '_' -- "$branch_name")
-    set -l worktree_path "$wtm_data_dir/$dir_name"
+    # Use branch name for directory
+    set -l worktree_path "$wtm_data_dir/$branch_name"
 
     # Get base branch (default to main)
     set -l base_branch
