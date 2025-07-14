@@ -143,7 +143,7 @@ function wtm --description "Git worktree manager with advanced features"
     end
 
     # Parse global options - stop at first non-option argument
-    argparse -s 'h/help' 'v/verbose' 'q/quiet' -- $argv
+    argparse -s h/help v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -345,12 +345,12 @@ end
 # Open existing worktree
 function __wtm_open
     # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
     set -l verbose $argv[-2]
     set -l quiet $argv[-1]
 
     # Parse open-specific options
-    argparse 'h/help' -- $actual_argv
+    argparse h/help -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -404,9 +404,9 @@ function __wtm_preview_worktree
             set -l file (string sub -s 4 -- $change)
 
             switch $status
-                case "M " " M" "MM"
+                case "M " " M" MM
                     echo "   Modified: $file"
-                case "A " "AM"
+                case "A " AM
                     echo "  ➕ Added: $file"
                 case "D " " D"
                     echo "  ➖ Deleted: $file"
@@ -429,12 +429,12 @@ end
 # Add new worktree
 function __wtm_add
     # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
     set -l verbose $argv[-2]
     set -l quiet $argv[-1]
 
     # Parse add-specific options
-    argparse 'b/base=' 'no-hook' 'sync' 'h/help' -- $actual_argv
+    argparse 'b/base=' no-hook sync h/help -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -497,11 +497,11 @@ function __wtm_add
         test "$verbose" = true; and echo "Using current branch '$base_branch' as base (--sync flag provided)"
     else
         # Default to main branch
-        set base_branch "main"
+        set base_branch main
         # Check if main exists, otherwise try master
         if not git rev-parse --verify main &>/dev/null
             if git rev-parse --verify master &>/dev/null
-                set base_branch "master"
+                set base_branch master
             else
                 # Fallback to current branch if neither main nor master exists
                 set base_branch $current_branch
@@ -525,7 +525,7 @@ function __wtm_add
     # Create worktree
     test "$quiet" = false; and echo "Creating worktree for branch '$branch_name'..."
 
-    set -l worktree_add_cmd "git" "worktree" "add"
+    set -l worktree_add_cmd git worktree add
     set -l success_message_branch_info
 
     # Check if branch already exists
@@ -541,12 +541,12 @@ function __wtm_add
             # Branch exists remotely, create tracking branch
             set base_branch "origin/$branch_name"
             test "$verbose" = true; and echo "Branch '$branch_name' exists remotely, creating tracking branch."
-            set -a worktree_add_cmd "--track" "-b" "$branch_name" "$worktree_path" "$base_branch"
+            set -a worktree_add_cmd --track -b "$branch_name" "$worktree_path" "$base_branch"
             set success_message_branch_info "Branch: $branch_name (tracking origin/$branch_name)"
         else
             # Branch doesn't exist, create new branch
             test "$verbose" = true; and echo "Branch '$branch_name' does not exist, creating new branch."
-            set -a worktree_add_cmd "-b" "$branch_name" "$worktree_path" "$base_branch"
+            set -a worktree_add_cmd -b "$branch_name" "$worktree_path" "$base_branch"
             set success_message_branch_info "Branch: $branch_name (based on $base_branch)"
         end
     end
@@ -654,12 +654,12 @@ end
 # Remove worktree
 function __wtm_remove
     # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
     set -l verbose $argv[-2]
     set -l quiet $argv[-1]
 
     # Parse remove-specific options
-    argparse 'h/help' 'b/branch' 'f/force' -- $actual_argv
+    argparse h/help b/branch f/force -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -764,7 +764,7 @@ function __wtm_remove
             --ansi)
 
         if test -z "$selected_branch"
-            echo "Cancelled"
+            echo Cancelled
             return 0
         end
 
@@ -804,8 +804,8 @@ function __wtm_remove
     end
 
     read -l -P "Are you sure? (Y/n) " confirm
-    if not string match -qi 'y' $confirm
-        echo "Cancelled"
+    if not string match -qi y $confirm
+        echo Cancelled
         return 0
     end
 
@@ -828,7 +828,7 @@ function __wtm_remove
 
     # Remove worktree
     test "$quiet" = false; and echo "Removing worktree..."
-    set -l remove_cmd "git" "worktree" "remove" "$worktree_path"
+    set -l remove_cmd git worktree remove "$worktree_path"
     if set -ql _flag_force
         set -a remove_cmd --force
     end
@@ -836,14 +836,27 @@ function __wtm_remove
     if $remove_cmd &>/tmp/wtm_remove.log
         test "$quiet" = false; and echo "[OK] Removed worktree: $resolved_path"
 
+        # Clean up empty parent directories
+        set -l parent_dir (dirname "$resolved_path")
+        set -l wtm_data_dir (path resolve (git rev-parse --git-common-dir)/wtm_data)
+        while test "$parent_dir" != "$wtm_data_dir" -a "$parent_dir" != /
+            if test (count (ls "$parent_dir")) -eq 0
+                test "$verbose" = true; and echo "Removing empty directory: $parent_dir"
+                rmdir "$parent_dir" 2>/dev/null
+                set parent_dir (dirname "$parent_dir")
+            else
+                break
+            end
+        end
+
         # Make branch deletion conditional
         if set -ql _flag_branch
             # Delete branch
-            set -l delete_branch_cmd "git" "branch"
+            set -l delete_branch_cmd git branch
             if set -ql _flag_force
-                set -a delete_branch_cmd "-D"
+                set -a delete_branch_cmd -D
             else
-                set -a delete_branch_cmd "-d"
+                set -a delete_branch_cmd -d
             end
             set -a delete_branch_cmd "$branch_name"
 
@@ -867,12 +880,12 @@ end
 # List worktrees
 function __wtm_list
     # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
     set -l verbose $argv[-2]
     set -l quiet $argv[-1]
 
     # Parse list-specific options
-    argparse 'h/help' -- $actual_argv
+    argparse h/help -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -912,12 +925,12 @@ end
 # Clean up stale worktrees
 function __wtm_clean
     # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3]  # Skip first "--" and last two (verbose, quiet)
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
     set -l verbose $argv[-2]
     set -l quiet $argv[-1]
 
     # Parse clean-specific options
-    argparse 'n/dry-run' 'days=' 'h/help' -- $actual_argv
+    argparse n/dry-run 'days=' h/help -- $actual_argv
     or return 1
 
     # Handle help flag
@@ -1119,7 +1132,7 @@ end
 # Create branch-specific config
 # echo "BRANCH=$WTM_BRANCH_NAME" >> .env.local
 
-echo "[OK] Hook completed successfully"' > .wtm_hook.fish
+echo "[OK] Hook completed successfully"' >.wtm_hook.fish
 
     chmod +x .wtm_hook.fish
 
@@ -1137,9 +1150,9 @@ function __wtm_main
     # Find default branch (main or master)
     set -l default_branch
     if git rev-parse --verify main &>/dev/null
-        set default_branch "main"
+        set default_branch main
     else if git rev-parse --verify master &>/dev/null
-        set default_branch "master"
+        set default_branch master
     else
         echo "Error: No default branch (main/master) found" >&2
         return 1
