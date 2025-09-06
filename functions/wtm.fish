@@ -191,7 +191,11 @@ function __wtm_operate_files -a operation
         end
 
         if test "$operation" = diff
-            delta "$source_file" "$dest_file"
+            if command -sq delta
+                delta "$source_file" "$dest_file"
+            else
+                diff -u "$source_file" "$dest_file"
+            end
         else
             $operation "$source_file" "$dest_file"
         end
