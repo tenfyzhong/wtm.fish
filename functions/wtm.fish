@@ -723,6 +723,7 @@ function __wtm_remove
         end
 
         # Select branch with fzf
+        # Select branch with fzf
         set -l selected_branch (printf '%s\n' $branch_names | fzf \
             --preview-window="right:70%:wrap" \
             --preview='
@@ -738,7 +739,7 @@ function __wtm_remove
                 echo ""
 
                 echo "  Changed Files:"
-                echo "(string repeat -n 50 \"─\")"
+                echo (string repeat -n 50 "─")
 
                 set -l changes (git -C "$resolved_path" status --porcelain 2>/dev/null)
                 if test -z "$changes"
@@ -766,7 +767,7 @@ function __wtm_remove
                                 echo "   Renamed: $file"
                             case "??"
                                 echo "   Untracked: $file"
-                            case '*'
+                            case "*"
                                 echo "   $status $file"
                         end
                     end
@@ -774,7 +775,7 @@ function __wtm_remove
 
                 echo ""
                 echo "  Recent Commits:"
-                echo "(string repeat -n 50 \"─\")"
+                echo (string repeat -n 50 "─")
                 git -C "$resolved_path" log --oneline --color=always -10 2>/dev/null | string replace -r "^" "  "
             ' \
             --header="╭────────────────────────────────────────────────────────────────────╮
@@ -783,7 +784,7 @@ function __wtm_remove
             --border=rounded \
             --height=80% \
             --layout=reverse \
-            --prompt="> " \
+            --prompt="› " \
             --ansi)
 
         if test -z "$selected_branch"
