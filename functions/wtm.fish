@@ -73,7 +73,7 @@ end
 
 function __wtm_cp
     # Parse cp-specific options
-    argparse h/help v/verbose q/quiet -- $argv
+    argparse h/help v/verbose q/quiet 'b/branch=' -- $argv
     or return 1
 
     # Handle help flag
@@ -85,8 +85,13 @@ function __wtm_cp
     set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
     set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
-    set -l target_branch $argv[1]
-    set -l files $argv[2..-1]
+    if not set -ql _flag_branch
+        echo "Error: Target branch name required, use -b/--branch flag" >&2
+        __wtm_cp_help
+        return 1
+    end
+    set -l target_branch $_flag_branch
+    set -l files $argv
 
     if test -z "$target_branch"
         echo "Error: Target branch name required" >&2
@@ -1146,6 +1151,7 @@ function __wtm_help
     echo "  wtm remove <branch> [options]    - Remove worktree and branch"
     echo "  wtm list [options]               - List all worktrees"
     echo "  wtm clean [options]              - Clean up stale worktrees"
+    echo "  wtm cp -b <branch> <files...>    - Copy files to another worktree"
     echo "  wtm init                         - Create .wtm_hook.fish template"
     echo "  wtm main                         - Switch to default branch (main/master)"
     echo ""
@@ -1168,7 +1174,7 @@ function __wtm_help
     echo "  wtm add feature/new-ui          - Create new feature branch"
     echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
     echo "  wtm main                         - Switch to main branch"
-    echo "  wtm cp <branch> <file1> ...    - Copy files to another worktree"
+    echo "  wtm cp -b feature/new-ui src/main.js - Copy files to another worktree"
 end
 
 # Handle help flag
@@ -1283,17 +1289,18 @@ function __wtm_cp_help
     echo "╰──────────────────────────────────────────────────────────╯"
     echo ""
     echo "USAGE:"
-    echo "  wtm cp <branch> <file1> [file2 ...]"
+    echo "  wtm cp -b <branch> <file1> [file2 ...]"
     echo ""
     echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
     echo "  -h, --help            Show this help message"
     echo ""
     echo "DESCRIPTION:"
     echo "  Copy one or more files from the current worktree to the same relative path in another worktree."
     echo ""
     echo "EXAMPLES:"
-    echo "  wtm cp feature/new-ui src/main.js"
-    echo "  wtm cp hotfix/bug-123 README.md package.json"
+    echo "  wtm cp -b feature/new-ui src/main.js"
+    echo "  wtm cp --branch hotfix/bug-123 README.md package.json"
 end
 
 function __wtm_init_help

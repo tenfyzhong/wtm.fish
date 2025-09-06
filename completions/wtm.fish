@@ -47,8 +47,9 @@ complete -c wtm -n "__fish_seen_subcommand_from clean" -l days -x -d "Remove wor
 complete -c wtm -n "__fish_seen_subcommand_from clean" -s h -l help -d "Show help for clean command"
 
 # Options for 'cp' subcommand
-complete -c wtm -n "set -l tokens (commandline -opc); and test (count \$tokens) -gt 2; and contains cp \$tokens[2]" -f
-# complete -c wtm -n "__fish_seen_subcommand_from cp" -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
+complete -c wtm -n "__fish_seen_subcommand_from cp" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
+complete -c wtm -n "__fish_seen_subcommand_from cp" -s h -l help -d "Show help for cp command"
+complete -c wtm -n "__fish_seen_subcommand_from cp" -F
 
 # Helper function to get worktree branches (excluding main/master)
 function __wtm_git_worktree_branches --description "Get worktree branches for completion"
