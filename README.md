@@ -109,6 +109,21 @@ wtm clean --days 7
 wtm clean --dry-run
 ```
 
+### Operate Files Across Worktrees
+
+You can `cp` (copy), `mv` (move), or `diff` files between the current worktree and another worktree. This is useful for sharing changes or comparing files without committing.
+
+```fish
+# Copy a file to the 'feature/new-ui' worktree
+wtm cp -b feature/new-ui src/styles/main.css
+
+# Move a file to the 'hotfix/bug-123' worktree
+wtm mv -b hotfix/bug-123 docs/README.md
+
+# Diff a file with the 'develop' worktree
+wtm diff -b develop src/app.js
+```
+
 ### Switch to Main Branch
 
 ```fish
@@ -128,13 +143,16 @@ wtm init
 | Command | Description |
 |---------|-------------|
 | `wtm` | Interactive worktree selection with fzf |
+| `wtm open [<branch>]` | Open existing worktree (interactive if no branch specified) |
 | `wtm add <branch>` | Create new worktree. If the branch doesn't exist locally, it checks for a remote branch and creates a tracking branch if found. Otherwise, it creates a new branch. |
 | `wtm remove [<branch>]` | Remove worktree and branch |
 | `wtm list` | List all worktrees |
 | `wtm clean` | Clean up stale worktrees with no uncommitted changes |
+| `wtm cp -b <branch> <files...>` | Copy files to another worktree |
+| `wtm mv -b <branch> <files...>` | Move files to another worktree |
+| `wtm diff -b <branch> <files...>` | Diff files with another worktree |
 | `wtm init` | Create a project-specific hook template (`.wtm_hook.fish`) |
 | `wtm main` | Switch to main/master branch |
-| `wtm open [<branch>]` | Open existing worktree (interactive if no branch specified) |
 
 ### Global Options
 
@@ -157,6 +175,10 @@ wtm init
 
 - `-n, --dry-run` - Show what would be removed
 - `--days <n>` - Remove worktrees older than n days (default: 30)
+
+### File Operation Options (`cp`, `mv`, `diff`)
+
+- `-b, --branch <branch>` - The target worktree branch.
 
 ## Hook System
 

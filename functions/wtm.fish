@@ -1,147 +1,4 @@
 function wtm --description "Git worktree manager with advanced features"
-    # Define help function
-    function __wtm_help
-        echo "╭─────────────────────────────────────────────────────────────────────╮"
-        echo "│ Git Worktree Manager - Manage Git worktrees efficiently             │"
-        echo "╰─────────────────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm [options]                    - Interactive worktree selection with fzf"
-        echo "  wtm open <branch>                - Open existing worktree"
-        echo "  wtm add <branch> [options]       - Create new branch and worktree"
-        echo "  wtm remove <branch> [options]    - Remove worktree and branch"
-        echo "  wtm list [options]               - List all worktrees"
-        echo "  wtm clean [options]              - Clean up stale worktrees"
-        echo "  wtm init                         - Create .wtm_hook.fish template"
-        echo "  wtm main                         - Switch to default branch (main/master)"
-        echo ""
-        echo "GLOBAL OPTIONS:"
-        echo "  -h, --help                      - Show this help message"
-        echo "  -v, --verbose                   - Enable verbose output"
-        echo "  -q, --quiet                     - Suppress informational output"
-        echo ""
-        echo "ADD OPTIONS:"
-        echo "  -b, --base <branch>             - Base branch (default: main)"
-        echo "  --sync                          - Sync staged/modified/untracked files"
-        echo "  --no-hook                       - Skip hook execution"
-        echo ""
-        echo "CLEAN OPTIONS:"
-        echo "  -n, --dry-run                   - Show what would be removed"
-        echo "  --days <n>                      - Remove worktrees older than n days"
-        echo ""
-        echo "EXAMPLES:"
-        echo "  wtm                              - Select worktree interactively"
-        echo "  wtm add feature/new-ui          - Create new feature branch"
-        echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
-        echo "  wtm main                         - Switch to main branch"
-    end
-
-    # Handle help flag
-    function __wtm_open_help
-        echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm open - Open existing worktree                        │"
-        echo "╰──────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm open [<branch>] [options]"
-        echo ""
-        echo "OPTIONS:"
-        echo "  -h, --help            Show this help message"
-        echo ""
-        echo "DESCRIPTION:"
-        echo "  Open an existing worktree by branch name."
-        echo "  If no branch is specified, interactive selection with fzf is used."
-        echo ""
-        echo "EXAMPLES:"
-        echo "  wtm open                      - Interactive selection"
-        echo "  wtm open feature/my-feature   - Open specific branch"
-    end
-
-    # Define subcommand help functions
-    function __wtm_add_help
-        echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm add - Create new branch and worktree                 │"
-        echo "╰──────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm add <branch> [options]"
-        echo ""
-        echo "OPTIONS:"
-        echo "  -b, --base <branch>   Base branch (default: main)"
-        echo "  --sync                Sync staged/modified/untracked files from current branch"
-        echo "  --no-hook             Skip hook execution (.wtm_hook.fish or global hook)"
-        echo "  -h, --help            Show this help message"
-        echo ""
-        echo "EXAMPLES:"
-        echo "  wtm add feature/new-ui                    - Create from main branch"
-        echo "  wtm add hotfix/bug-123 -b develop        - Create from develop branch"
-        echo "  wtm add feature/continue --sync          - Create with current changes"
-    end
-
-    function __wtm_remove_help
-        echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm remove - Remove worktree and optionally branch       │"
-        echo "╰──────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm remove [<branch>] [options]"
-        echo ""
-        echo "OPTIONS:"
-        echo "  -b, --branch          Remove the branch as well (default: false)"
-        echo "  -f, --force           Force removal of worktree with uncommitted changes or unmerged branches"
-        echo "  -h, --help            Show this help message"
-        echo ""
-        echo "DESCRIPTION:"
-        echo "  Remove a worktree and its associated branch."
-        echo "  If no branch is specified, interactive selection with fzf is used."
-        echo "  Protected branches (main/master) and current branch cannot be removed."
-        echo "  By default, it prevents removing worktrees with uncommitted changes or branches that are not merged."
-        echo ""
-        echo "EXAMPLES:"
-        echo "  wtm remove                          - Interactive selection"
-        echo "  wtm remove feature/old-ui           - Remove specific branch"
-        echo "  wtm remove feature/old-ui --branch  - Remove worktree and branch"
-        echo "  wtm remove feature/old-ui --branch --force - Force remove worktree and branch"
-    end
-
-    function __wtm_list_help
-        echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm list - List all worktrees                            │"
-        echo "╰──────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm list [options]"
-        echo ""
-        echo "OPTIONS:"
-        echo "  -h, --help            Show this help message"
-        echo ""
-        echo "DESCRIPTION:"
-        echo "  Display all worktrees with their status and last commit."
-    end
-
-    function __wtm_clean_help
-        echo "╭──────────────────────────────────────────────────────────╮"
-        echo "│ wtm clean - Clean up stale worktrees                     │"
-        echo "╰──────────────────────────────────────────────────────────╯"
-        echo ""
-        echo "USAGE:"
-        echo "  wtm clean [options]"
-        echo ""
-        echo "OPTIONS:"
-        echo "  -n, --dry-run         Show what would be removed"
-        echo "  --days <n>            Remove worktrees older than n days (default: 30)"
-        echo "  -h, --help            Show this help message"
-        echo ""
-        echo "DESCRIPTION:"
-        echo "  Remove worktrees that haven't been modified for the specified number of days."
-        echo "  Protected branches (main/master) and current branch are never removed."
-        echo ""
-        echo "EXAMPLES:"
-        echo "  wtm clean                       - Remove worktrees older than 30 days"
-        echo "  wtm clean --days 7              - Remove worktrees older than 7 days"
-        echo "  wtm clean --dry-run             - Preview what would be removed"
-    end
-
     # Parse global options - stop at first non-option argument
     argparse -s h/help v/verbose q/quiet -- $argv
     or return 1
@@ -160,31 +17,49 @@ function wtm --description "Git worktree manager with advanced features"
     set -l cmd $argv[1]
     set -e argv[1]
 
+    # Prepare flags to pass to subcommands
+    set -l flags_to_pass
+    if $verbose
+        set -a flags_to_pass --verbose
+    end
+    if $quiet
+        set -a flags_to_pass --quiet
+    end
+
     # Main command logic
     switch "$cmd"
         case "" # Interactive selection
-            __wtm_interactive -- $verbose $quiet
+            __wtm_interactive $argv $flags_to_pass
 
         case open
-            __wtm_open -- $argv $verbose $quiet
+            __wtm_open $argv $flags_to_pass
 
         case add
-            __wtm_add -- $argv $verbose $quiet
+            __wtm_add $argv $flags_to_pass
 
         case remove rm
-            __wtm_remove -- $argv $verbose $quiet
+            __wtm_remove $argv $flags_to_pass
 
         case list ls
-            __wtm_list -- $argv $verbose $quiet
+            __wtm_list $argv $flags_to_pass
 
         case clean
-            __wtm_clean -- $argv $verbose $quiet
+            __wtm_clean $argv $flags_to_pass
+
+        case cp
+            __wtm_cp $argv $flags_to_pass
+
+        case diff
+            __wtm_diff $argv $flags_to_pass
+
+        case mv
+            __wtm_mv $argv $flags_to_pass
 
         case init
-            __wtm_init -- $verbose $quiet
+            __wtm_init $argv $flags_to_pass
 
         case main default
-            __wtm_main -- $verbose $quiet
+            __wtm_main $argv $flags_to_pass
 
         case help
             __wtm_help
@@ -202,11 +77,157 @@ function wtm --description "Git worktree manager with advanced features"
     end
 end
 
+function __wtm_operate_files -a operation
+    # Parse options
+    argparse h/help v/verbose q/quiet 'b/branch=' -- $argv
+    or return 1
+
+    set -e argv[1]
+
+    # Handle help flag
+    if set -ql _flag_help
+        if test "$operation" = cp
+            __wtm_cp_help
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
+            __wtm_mv_help
+        end
+        return 0
+    end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
+
+    if not set -ql _flag_branch
+        echo "Error: Target branch name required, use -b/--branch flag" >&2
+        if test "$operation" = cp
+            __wtm_cp_help
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else
+            __wtm_mv_help
+        end
+        return 1
+    end
+    set -l target_branch $_flag_branch
+    set -l files $argv
+
+    if test -z "$target_branch"
+        echo "Error: Target branch name required" >&2
+        if test "$operation" = cp
+            __wtm_cp_help
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
+            __wtm_mv_help
+        end
+        return 1
+    end
+
+    if test -z "$files"
+        echo "Error: At least one file must be specified" >&2
+        if test "$operation" = cp
+            __wtm_cp_help
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
+            __wtm_mv_help
+        end
+        return 1
+    end
+
+    # Get repository root
+    set -l repo_root (git rev-parse --show-toplevel 2>/dev/null)
+    if test -z "$repo_root"
+        echo "Error: Not in a Git repository" >&2
+        return 1
+    end
+
+    # Get current working directory
+    set -l cwd (pwd)
+
+    # Find worktree for target branch
+    set -l target_worktree_path
+    git worktree list --porcelain | while read -l key value
+        switch $key
+            case worktree
+                set current_path $value
+            case branch
+                if test (string replace 'refs/heads/' '' $value) = "$target_branch"
+                    set target_worktree_path $current_path
+                    break
+                end
+        end
+    end
+
+    if not set -q target_worktree_path
+        echo "Error: No worktree found for branch '$target_branch'" >&2
+        return 1
+    end
+    set -l resolved_target_path (path resolve $target_worktree_path)
+
+    for file in $files
+        set -l source_file (path resolve "$cwd/$file")
+        set -l relative_path (string replace "$repo_root/" "" "$source_file")
+        set -l dest_file (path resolve "$resolved_target_path/$relative_path")
+
+        if not test -f "$source_file"
+            echo "[WARN] Source file not found: $source_file" >&2
+            continue
+        end
+
+        if test "$operation" = diff
+            if not test -f "$dest_file"
+                echo "[WARN] Destination file not found: $dest_file" >&2
+                continue
+            end
+        else
+            set -l dest_dir (dirname "$dest_file")
+            if not test -d "$dest_dir"
+                mkdir -p "$dest_dir"
+                test "$verbose" = true; and echo "[INFO] Created directory: $dest_dir"
+            end
+        end
+
+        if test "$operation" = diff
+            if command -sq delta
+                delta "$source_file" "$dest_file"
+            else
+                diff -u "$source_file" "$dest_file"
+            end
+        else
+            $operation "$source_file" "$dest_file"
+        end
+    end
+    return 0
+end
+
+function __wtm_cp
+    __wtm_operate_files cp $argv
+end
+
+function __wtm_diff
+    __wtm_operate_files diff $argv
+end
+
+function __wtm_mv
+    __wtm_operate_files mv $argv
+end
+
 # Interactive worktree selection with fzf
 function __wtm_interactive
-    # Parse arguments after --
-    set -l verbose $argv[2]
-    set -l quiet $argv[3]
+    argparse v/verbose q/quiet h/help -- $argv
+    or return 1
+
+    if set -ql _flag_help
+        __wtm_help
+        return 0
+    end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
+
     # Check if fzf is available
     if not command -sq fzf
         echo "Error: fzf is not installed. Please install fzf to use interactive mode." >&2
@@ -318,13 +339,13 @@ function __wtm_interactive
         --border=rounded \
         --height=80% \
         --layout=reverse \
-        --prompt="› " \
+        --prompt="> " \
         --ansi)
 
-    __wtm_open_branch "$selected_branch"
+    __wtm_open_branch "$selected_branch" $verbose $quiet
 end
 
-function __wtm_open_branch -a branch
+function __wtm_open_branch -a branch verbose quiet
     if test -n "$branch"
         # Find the worktree path for the selected branch
         set -l worktree_info (git worktree list | grep "\[$branch\]")
@@ -333,7 +354,8 @@ function __wtm_open_branch -a branch
 
         if test -d "$resolved_path"
             cd "$resolved_path"
-            test "$verbose" = true; and echo "Switched to worktree: $resolved_path"
+            test "$quiet" = false; and echo "Switched to worktree '$branch'"
+            test "$verbose" = true; and echo "Path: $resolved_path"
             return 0
         else
             echo "Error: Directory not found: $worktree_path" >&2
@@ -344,13 +366,8 @@ end
 
 # Open existing worktree
 function __wtm_open
-    # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
-    set -l verbose $argv[-2]
-    set -l quiet $argv[-1]
-
     # Parse open-specific options
-    argparse h/help -- $actual_argv
+    argparse h/help v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -359,13 +376,23 @@ function __wtm_open
         return 0
     end
 
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
+
     set -l branch_name $argv[1]
 
     # If no branch name provided, use fzf for interactive selection
     if test -z "$branch_name"
-        __wtm_interactive
+        set -l flags_to_pass
+        if test "$verbose" = true
+            set -a flags_to_pass --verbose
+        end
+        if test "$quiet" = true
+            set -a flags_to_pass --quiet
+        end
+        __wtm_interactive $flags_to_pass
     else
-        __wtm_open_branch "$branch_name"
+        __wtm_open_branch "$branch_name" $verbose $quiet
     end
 end
 
@@ -386,7 +413,7 @@ function __wtm_preview_worktree
 
     # Changed files
     echo "  Changed Files:"
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
 
     set -l changes (git -C "$resolved_path" status --porcelain 2>/dev/null)
     if test -z "$changes"
@@ -422,19 +449,14 @@ function __wtm_preview_worktree
 
     echo ""
     echo "📜 Recent Commits:"
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
     git -C "$resolved_path" log --oneline --color=always -10 2>/dev/null | string replace -r '^' '  '
 end
 
 # Add new worktree
 function __wtm_add
-    # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
-    set -l verbose $argv[-2]
-    set -l quiet $argv[-1]
-
     # Parse add-specific options
-    argparse 'b/base=' no-hook sync h/help -- $actual_argv
+    argparse 'b/base=' no-hook sync h/help v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -442,6 +464,9 @@ function __wtm_add
         __wtm_add_help
         return 0
     end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
     # Get branch name from remaining arguments after argparse
     set -l branch_name $argv[1]
@@ -536,7 +561,7 @@ function __wtm_add
         set success_message_branch_info "Branch: $branch_name (existing)"
     else
         # Check if branch exists remotely
-        set -l remote_branch (git ls-remote --heads origin "$branch_name" | string split -f1 \t)
+        set -l remote_branch (git ls-remote --heads origin "$branch_name" | string split -f1 '\t')
         if test -n "$remote_branch"
             # Branch exists remotely, create tracking branch
             set base_branch "origin/$branch_name"
@@ -653,13 +678,8 @@ end
 
 # Remove worktree
 function __wtm_remove
-    # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
-    set -l verbose $argv[-2]
-    set -l quiet $argv[-1]
-
     # Parse remove-specific options
-    argparse h/help b/branch f/force -- $actual_argv
+    argparse h/help b/branch f/force v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -667,6 +687,9 @@ function __wtm_remove
         __wtm_remove_help
         return 0
     end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
     set -l branch_name $argv[1]
 
@@ -683,7 +706,7 @@ function __wtm_remove
         end
 
         # Get worktree list excluding main/master and current branch
-        set -l worktrees (git worktree list 2>/dev/null | grep -v '\[\(main\|master\)\]')
+        set -l worktrees (git worktree list 2>/dev/null | grep -v '.*\\\[\(main\|master\)\]')
         if test -n "$current_branch"
             set worktrees (printf '%s\n' $worktrees | grep -v "\[$current_branch\]")
         end
@@ -699,6 +722,7 @@ function __wtm_remove
             set -a branch_names (echo $worktree | string match -r '\[([^\]]+)\]' | string split -f2 '[' | string trim -c ']')
         end
 
+        # Select branch with fzf
         # Select branch with fzf
         set -l selected_branch (printf '%s\n' $branch_names | fzf \
             --preview-window="right:70%:wrap" \
@@ -879,13 +903,8 @@ end
 
 # List worktrees
 function __wtm_list
-    # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
-    set -l verbose $argv[-2]
-    set -l quiet $argv[-1]
-
     # Parse list-specific options
-    argparse h/help -- $actual_argv
+    argparse h/help v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -893,6 +912,9 @@ function __wtm_list
         __wtm_list_help
         return 0
     end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
     # Get worktree list
     set -l worktrees (git worktree list 2>/dev/null)
@@ -924,13 +946,8 @@ end
 
 # Clean up stale worktrees
 function __wtm_clean
-    # The first argument is always "--", followed by actual arguments, then verbose and quiet
-    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
-    set -l verbose $argv[-2]
-    set -l quiet $argv[-1]
-
     # Parse clean-specific options
-    argparse n/dry-run 'days=' h/help -- $actual_argv
+    argparse n/dry-run 'days=' h/help v/verbose q/quiet -- $argv
     or return 1
 
     # Handle help flag
@@ -938,6 +955,9 @@ function __wtm_clean
         __wtm_clean_help
         return 0
     end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
     set -l dry_run (set -ql _flag_dry_run; and echo true; or echo false)
     set -l days (set -ql _flag_days; and echo $_flag_days; or echo 30)
@@ -1036,7 +1056,7 @@ function __wtm_clean
         end
     end
 
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
     if test "$dry_run" = true
         echo "Would remove $removed_count worktrees"
     else
@@ -1046,9 +1066,17 @@ end
 
 # Initialize hook template
 function __wtm_init
-    # Parse arguments after --
-    set -l verbose $argv[2]
-    set -l quiet $argv[3]
+    argparse v/verbose q/quiet h/help -- $argv
+    or return 1
+
+    if set -ql _flag_help
+        __wtm_init_help
+        return 0
+    end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
+
     if test -f ".wtm_hook.fish"
         echo "Error: .wtm_hook.fish already exists" >&2
         echo "Remove it first if you want to recreate it." >&2
@@ -1143,9 +1171,16 @@ end
 
 # Switch to default branch (main/master)
 function __wtm_main
-    # Parse arguments after --
-    set -l verbose $argv[2]
-    set -l quiet $argv[3]
+    argparse v/verbose q/quiet h/help -- $argv
+    or return 1
+
+    if set -ql _flag_help
+        __wtm_main_help
+        return 0
+    end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
 
     # Find default branch (main or master)
     set -l default_branch
@@ -1172,11 +1207,254 @@ function __wtm_main
 
     if test -d "$resolved_path"
         cd "$resolved_path"
-        test "$quiet" = false; and echo "Switched to $default_branch branch"
+        test "$quiet" = false; and echo "Switched to default branch '$default_branch'"
         test "$verbose" = true; and echo "Path: $resolved_path"
         return 0
     else
         echo "Error: Directory not found: $resolved_path" >&2
         return 1
     end
+end
+
+# Define help function
+function __wtm_help
+    echo "╭─────────────────────────────────────────────────────────────────────╮"
+    echo "│ Git Worktree Manager - Manage Git worktrees efficiently             │"
+    echo "╰─────────────────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm [options]                    - Interactive worktree selection with fzf"
+    echo "  wtm open <branch>                - Open existing worktree"
+    echo "  wtm add <branch> [options]       - Create new branch and worktree"
+    echo "  wtm remove <branch> [options]    - Remove worktree and branch"
+    echo "  wtm list [options]               - List all worktrees"
+    echo "  wtm clean [options]              - Clean up stale worktrees"
+    echo "  wtm cp -b <branch> <files...>    - Copy files to another worktree"
+    echo "  wtm mv -b <branch> <files...>    - Move files to another worktree"
+    echo "  wtm diff -b <branch> <files...>  - Diff files with another worktree"
+    echo "  wtm init                         - Create .wtm_hook.fish template"
+    echo "  wtm main                         - Switch to default branch (main/master)"
+    echo ""
+    echo "GLOBAL OPTIONS:"
+    echo "  -h, --help                      - Show this help message"
+    echo "  -v, --verbose                   - Enable verbose output"
+    echo "  -q, --quiet                     - Suppress informational output"
+    echo ""
+    echo "ADD OPTIONS:"
+    echo "  -b, --base <branch>             - Base branch (default: main)"
+    echo "  --sync                          - Sync staged/modified/untracked files"
+    echo "  --no-hook                       - Skip hook execution"
+    echo ""
+    echo "CLEAN OPTIONS:"
+    echo "  -n, --dry-run                   - Show what would be removed"
+    echo "  --days <n>                      - Remove worktrees older than n days"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm                              - Select worktree interactively"
+    echo "  wtm add feature/new-ui          - Create new feature branch"
+    echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
+    echo "  wtm main                         - Switch to main branch"
+    echo "  wtm cp -b feature/new-ui src/main.js - Copy files to another worktree"
+    echo "  wtm mv -b feature/new-ui src/main.js - Move files to another worktree"
+    echo "  wtm diff -b feature/new-ui src/main.js - Diff files with another worktree"
+end
+
+# Handle help flag
+function __wtm_open_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm open - Open existing worktree                        │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm open [<branch>] [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Open an existing worktree by branch name."
+    echo "  If no branch is specified, interactive selection with fzf is used."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm open                      - Interactive selection"
+    echo "  wtm open feature/my-feature   - Open specific branch"
+end
+
+# Define subcommand help functions
+function __wtm_add_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm add - Create new branch and worktree                 │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm add <branch> [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --base <branch>   Base branch (default: main)"
+    echo "  --sync                Sync staged/modified/untracked files from current branch"
+    echo "  --no-hook             Skip hook execution (.wtm_hook.fish or global hook)"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm add feature/new-ui                    - Create from main branch"
+    echo "  wtm add hotfix/bug-123 -b develop        - Create from develop branch"
+    echo "  wtm add feature/continue --sync          - Create with current changes"
+end
+
+function __wtm_remove_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm remove - Remove worktree and optionally branch       │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm remove [<branch>] [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch          Remove the branch as well (default: false)"
+    echo "  -f, --force           Force removal of worktree with uncommitted changes or unmerged branches"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Remove a worktree and its associated branch."
+    echo "  If no branch is specified, interactive selection with fzf is used."
+    echo "  Protected branches (main/master) and current branch cannot be removed."
+    echo "  By default, it prevents removing worktrees with uncommitted changes or branches that are not merged."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm remove                          - Interactive selection"
+    echo "  wtm remove feature/old-ui           - Remove specific branch"
+    echo "  wtm remove feature/old-ui --branch  - Remove worktree and branch"
+    echo "  wtm remove feature/old-ui --branch --force - Force remove worktree and branch"
+end
+
+function __wtm_list_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm list - List all worktrees                            │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm list [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Display all worktrees with their status and last commit."
+end
+
+function __wtm_clean_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm clean - Clean up stale worktrees                     │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm clean [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -n, --dry-run         Show what would be removed"
+    echo "  --days <n>            Remove worktrees older than n days (default: 30)"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Remove worktrees that haven't been modified for the specified number of days."
+    echo "  Protected branches (main/master) and current branch are never removed."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm clean                       - Remove worktrees older than 30 days"
+    echo "  wtm clean --days 7              - Remove worktrees older than 7 days"
+    echo "  wtm clean --dry-run             - Preview what would be removed"
+end
+
+function __wtm_cp_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm cp - Copy files to another worktree                  │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm cp -b <branch> <file1> [file2 ...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Copy one or more files from the current worktree to the same relative path in another worktree."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm cp -b feature/new-ui src/main.js"
+    echo "  wtm cp --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_diff_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm diff - Diff files with another worktree              │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm diff -b <branch> <file1> [file2 ...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Diff one or more files from the current worktree to the same relative path in another worktree."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm diff -b feature/new-ui src/main.js"
+    echo "  wtm diff --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_mv_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm mv - Move files to another worktree                  │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm mv -b <branch> <file1> [file2 ...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Move one or more files from the current worktree to the same relative path in another worktree."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm mv -b feature/new-ui src/main.js"
+    echo "  wtm mv --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_init_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm init - Create a .wtm_hook.fish template              │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm init [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Creates a '.wtm_hook.fish' file in the current directory."
+    echo "  This hook file is executed after 'wtm add' and can be used to"
+    echo "  automate setup tasks for new worktrees, like installing"
+    echo "  dependencies or creating symlinks."
+end
+
+function __wtm_main_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm main - Switch to the default branch worktree         │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm main [options]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Switches to the worktree associated with the default branch"
+    echo "  of the repository (usually 'main' or 'master')."
 end
