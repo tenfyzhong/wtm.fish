@@ -49,6 +49,9 @@ function wtm --description "Git worktree manager with advanced features"
         case cp
             __wtm_cp $argv $flags_to_pass
 
+        case mv
+            __wtm_mv $argv $flags_to_pass
+
         case init
             __wtm_init $argv $flags_to_pass
 
@@ -71,14 +74,18 @@ function wtm --description "Git worktree manager with advanced features"
     end
 end
 
-function __wtm_cp
-    # Parse cp-specific options
+function __wtm_operate_files -a operation
+    # Parse options
     argparse h/help v/verbose q/quiet 'b/branch=' -- $argv
     or return 1
 
     # Handle help flag
     if set -ql _flag_help
-        __wtm_cp_help
+        if test "$operation" = "cp"
+            __wtm_cp_help
+        else
+            __wtm_mv_help
+        end
         return 0
     end
 
@@ -87,7 +94,11 @@ function __wtm_cp
 
     if not set -ql _flag_branch
         echo "Error: Target branch name required, use -b/--branch flag" >&2
-        __wtm_cp_help
+        if test "$operation" = "cp"
+            __wtm_cp_help
+        else
+            __wtm_mv_help
+        end
         return 1
     end
     set -l target_branch $_flag_branch
@@ -95,13 +106,21 @@ function __wtm_cp
 
     if test -z "$target_branch"
         echo "Error: Target branch name required" >&2
-        __wtm_cp_help
+        if test "$operation" = "cp"
+            __wtm_cp_help
+        else
+            __wtm_mv_help
+        end
         return 1
     end
 
     if test -z "$files"
         echo "Error: At least one file must be specified" >&2
-        __wtm_cp_help
+        if test "$operation" = "cp"
+            __wtm_cp_help
+        else
+            __wtm_mv_help
+        end
         return 1
     end
 
@@ -141,8 +160,16 @@ function __wtm_cp
             test "$verbose" = true; and echo "[INFO] Created directory: $dest_dir"
         end
 
-        cp "$source_file" "$dest_file"
+        $operation "$source_file" "$dest_file"
     end
+end
+
+function __wtm_cp
+    __wtm_operate_files cp $argv
+end
+
+function __wtm_mv
+    __wtm_operate_files mv $argv
 end
 
 # Interactive worktree selection with fzf
@@ -336,7 +363,7 @@ function __wtm_preview_worktree
 
     # Changed files
     echo "  Changed Files:"
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
 
     set -l changes (git -C "$resolved_path" status --porcelain 2>/dev/null)
     if test -z "$changes"
@@ -372,7 +399,7 @@ function __wtm_preview_worktree
 
     echo ""
     echo "📜 Recent Commits:"
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
     git -C "$resolved_path" log --oneline --color=always -10 2>/dev/null | string replace -r '^' '  '
 end
 
@@ -661,7 +688,7 @@ function __wtm_remove
                 echo ""
 
                 echo "  Changed Files:"
-                echo (string repeat -n 50 "─")
+                echo "(string repeat -n 50 \"─\")"
 
                 set -l changes (git -C "$resolved_path" status --porcelain 2>/dev/null)
                 if test -z "$changes"
@@ -697,7 +724,7 @@ function __wtm_remove
 
                 echo ""
                 echo "  Recent Commits:"
-                echo (string repeat -n 50 "─")
+                echo "(string repeat -n 50 \"─\")"
                 git -C "$resolved_path" log --oneline --color=always -10 2>/dev/null | string replace -r "^" "  "
             ' \
             --header="╭────────────────────────────────────────────────────────────────────╮
@@ -978,7 +1005,7 @@ function __wtm_clean
         end
     end
 
-    echo (string repeat -n 50 '─')
+    echo "(string repeat -n 50 '─')"
     if test "$dry_run" = true
         echo "Would remove $removed_count worktrees"
     else
@@ -1005,7 +1032,7 @@ function __wtm_init
         return 1
     end
 
-    echo '#!/usr/bin/env fish
+    echo "#!/usr/bin/env fish
 # .wtm_hook.fish - Executed after \'wtm add\' command in worktree directory
 #
 # This is a project-specific hook. For a global hook, create a file at:
@@ -1082,7 +1109,7 @@ end
 # Create branch-specific config
 # echo "BRANCH=$WTM_BRANCH_NAME" >> .env.local
 
-echo "[OK] Hook completed successfully"' >.wtm_hook.fish
+echo "[OK] Hook completed successfully"" >.wtm_hook.fish
 
     chmod +x .wtm_hook.fish
 
@@ -1152,6 +1179,7 @@ function __wtm_help
     echo "  wtm list [options]               - List all worktrees"
     echo "  wtm clean [options]              - Clean up stale worktrees"
     echo "  wtm cp -b <branch> <files...>    - Copy files to another worktree"
+    echo "  wtm mv -b <branch> <files...>    - Move files to another worktree"
     echo "  wtm init                         - Create .wtm_hook.fish template"
     echo "  wtm main                         - Switch to default branch (main/master)"
     echo ""
@@ -1175,6 +1203,7 @@ function __wtm_help
     echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
     echo "  wtm main                         - Switch to main branch"
     echo "  wtm cp -b feature/new-ui src/main.js - Copy files to another worktree"
+    echo "  wtm mv -b feature/new-ui src/main.js - Move files to another worktree"
 end
 
 # Handle help flag
@@ -1301,6 +1330,26 @@ function __wtm_cp_help
     echo "EXAMPLES:"
     echo "  wtm cp -b feature/new-ui src/main.js"
     echo "  wtm cp --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_mv_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm mv - Move files to another worktree                  │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm mv -b <branch> <file1> [file2 ...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Move one or more files from the current worktree to the same relative path in another worktree."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm mv -b feature/new-ui src/main.js"
+    echo "  wtm mv --branch hotfix/bug-123 README.md package.json"
 end
 
 function __wtm_init_help

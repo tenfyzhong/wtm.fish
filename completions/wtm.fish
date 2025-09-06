@@ -16,6 +16,7 @@ complete -c wtm -n __fish_use_subcommand -a list -d "List all worktrees"
 complete -c wtm -n __fish_use_subcommand -a ls -d "List all worktrees"
 complete -c wtm -n __fish_use_subcommand -a clean -d "Clean up stale worktrees"
 complete -c wtm -n __fish_use_subcommand -a cp -d "Copy files to another worktree"
+complete -c wtm -n __fish_use_subcommand -a mv -d "Move files to another worktree"
 complete -c wtm -n __fish_use_subcommand -a init -d "Create .wt_hook.fish template"
 complete -c wtm -n __fish_use_subcommand -a main -d "Switch to default branch (main/master)"
 complete -c wtm -n __fish_use_subcommand -a open -d "Open existing worktree"
@@ -50,6 +51,11 @@ complete -c wtm -n "__fish_seen_subcommand_from clean" -s h -l help -d "Show hel
 complete -c wtm -n "__fish_seen_subcommand_from cp" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
 complete -c wtm -n "__fish_seen_subcommand_from cp" -s h -l help -d "Show help for cp command"
 complete -c wtm -n "__fish_seen_subcommand_from cp" -F
+
+# Options for 'mv' subcommand
+complete -c wtm -n "__fish_seen_subcommand_from mv" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
+complete -c wtm -n "__fish_seen_subcommand_from mv" -s h -l help -d "Show help for mv command"
+complete -c wtm -n "__fish_seen_subcommand_from mv" -F
 
 # Helper function to get worktree branches (excluding main/master)
 function __wtm_git_worktree_branches --description "Get worktree branches for completion"
