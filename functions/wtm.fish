@@ -1071,7 +1071,7 @@ function __wtm_init
         return 1
     end
 
-    echo "#!/usr/bin/env fish
+    echo '#!/usr/bin/env fish
 # .wtm_hook.fish - Executed after \'wtm add\' command in worktree directory
 #
 # This is a project-specific hook. For a global hook, create a file at:
@@ -1086,8 +1086,8 @@ function __wtm_init
 
 # Example: Show creation info
 echo "[HOOK] Worktree hook executing..."
-echo " Branch: $WTM_BRANCH_NAME (from $WTM_BASE_BRANCH)"
-echo " Location: $WTM_WORKTREE_PATH"
+echo "   Branch: $WTM_BRANCH_NAME (from $WTM_BASE_BRANCH)"
+echo "   Location: $WTM_WORKTREE_PATH"
 
 # Files and directories to copy from project root
 set -l copy_items \
@@ -1106,7 +1106,7 @@ for item in $copy_items
     if test -e "$source"
         # Skip if target already exists
         if test -e "$target"
-            echo " [SKIP] $item (already exists)"
+            echo "       [SKIP] $item (already exists)"
             continue
         end
 
@@ -1116,16 +1116,16 @@ for item in $copy_items
                 case "node_modules" "vendor" ".git"
                     # Create symlink for large directories
                     ln -s "$source" "$target"
-                    echo " [LINK] $item"
-                case "*"
+                    echo "       [LINK] $item"
+                case \'*\'
                     # Copy directory
                     cp -r "$source" "$target"
-                    echo " [COPY] $item/"
+                    echo "       [COPY] $item/"
             end
         else
             # Copy file
             cp "$source" "$target"
-            echo " [COPY] $item"
+            echo "       [COPY] $item"
         end
     end
 end
@@ -1148,7 +1148,7 @@ end
 # Create branch-specific config
 # echo "BRANCH=$WTM_BRANCH_NAME" >> .env.local
 
-echo "[OK] Hook completed successfully >.wtm_hook.fish
+echo "[OK] Hook completed successfully"' >.wtm_hook.fish
 
     chmod +x .wtm_hook.fish
 
