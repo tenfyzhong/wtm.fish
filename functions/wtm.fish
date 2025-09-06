@@ -34,6 +34,7 @@ function wtm --description "Git worktree manager with advanced features"
         echo "  wtm add feature/new-ui          - Create new feature branch"
         echo "  wtm clean --days 30             - Remove worktrees older than 30 days"
         echo "  wtm main                         - Switch to main branch"
+        echo "  wtm cp <branch> <file1> ...    - Copy files to another worktree"
     end
 
     # Handle help flag
@@ -142,6 +143,25 @@ function wtm --description "Git worktree manager with advanced features"
         echo "  wtm clean --dry-run             - Preview what would be removed"
     end
 
+    function __wtm_cp_help
+        echo "╭──────────────────────────────────────────────────────────╮"
+        echo "│ wtm cp - Copy files to another worktree                  │"
+        echo "╰──────────────────────────────────────────────────────────╯"
+        echo ""
+        echo "USAGE:"
+        echo "  wtm cp <branch> <file1> [file2 ...]"
+        echo ""
+        echo "OPTIONS:"
+        echo "  -h, --help            Show this help message"
+        echo ""
+        echo "DESCRIPTION:"
+        echo "  Copy one or more files from the current worktree to the same relative path in another worktree."
+        echo ""
+        echo "EXAMPLES:"
+        echo "  wtm cp feature/new-ui src/main.js"
+        echo "  wtm cp hotfix/bug-123 README.md package.json"
+    end
+
     # Parse global options - stop at first non-option argument
     argparse -s h/help v/verbose q/quiet -- $argv
     or return 1
@@ -180,6 +200,9 @@ function wtm --description "Git worktree manager with advanced features"
         case clean
             __wtm_clean -- $argv $verbose $quiet
 
+        case cp
+            __wtm_cp -- $argv $verbose $quiet
+
         case init
             __wtm_init -- $verbose $quiet
 
@@ -199,6 +222,77 @@ function wtm --description "Git worktree manager with advanced features"
             echo "Error: Unknown command '$cmd'" >&2
             echo "Run 'wtm --help' for usage information." >&2
             return 1
+    end
+end
+
+function __wtm_cp
+    # The first argument is always "--", followed by actual arguments, then verbose and quiet
+    set -l actual_argv $argv[2..-3] # Skip first "--" and last two (verbose, quiet)
+    set -l verbose $argv[-2]
+    set -l quiet $argv[-1]
+
+    # Parse cp-specific options
+    argparse h/help -- $actual_argv
+    or return 1
+
+    # Handle help flag
+    if set -ql _flag_help
+        __wtm_cp_help
+        return 0
+    end
+
+    set -l target_branch $actual_argv[1]
+    set -l files $actual_argv[2..-1]
+
+    if test -z "$target_branch"
+        echo "Error: Target branch name required" >&2
+        __wtm_cp_help
+        return 1
+    end
+
+    if test -z "$files"
+        echo "Error: At least one file must be specified" >&2
+        __wtm_cp_help
+        return 1
+    end
+
+    # Get repository root
+    set -l repo_root (git rev-parse --show-toplevel 2>/dev/null)
+    if test -z "$repo_root"
+        echo "Error: Not in a Git repository" >&2
+        return 1
+    end
+
+    # Get current working directory
+    set -l cwd (pwd)
+
+    # Find worktree for target branch
+    set -l worktree_info (git worktree list | grep "\[$target_branch\]")
+    if test -z "$worktree_info"
+        echo "Error: No worktree found for branch '$target_branch'" >&2
+        return 1
+    end
+
+    set -l target_worktree_path (echo $worktree_info | string split -f1 ' ')
+    set -l resolved_target_path (path resolve $target_worktree_path)
+
+    for file in $files
+        set -l source_file (path resolve "$cwd/$file")
+        set -l relative_path (string replace "$repo_root/" "" "$source_file")
+        set -l dest_file (path resolve "$resolved_target_path/$relative_path")
+
+        if not test -f "$source_file"
+            echo "[WARN] Source file not found: $source_file" >&2
+            continue
+        end
+
+        set -l dest_dir (dirname "$dest_file")
+        if not test -d "$dest_dir"
+            mkdir -p "$dest_dir"
+            test "$verbose" = true; and echo "[INFO] Created directory: $dest_dir"
+        end
+
+        cp "$source_file" "$dest_file"
     end
 end
 
@@ -321,10 +415,10 @@ function __wtm_interactive
         --prompt="› " \
         --ansi)
 
-    __wtm_open_branch "$selected_branch"
+    __wtm_open_branch "$selected_branch" $verbose
 end
 
-function __wtm_open_branch -a branch
+function __wtm_open_branch -a branch verbose
     if test -n "$branch"
         # Find the worktree path for the selected branch
         set -l worktree_info (git worktree list | grep "\[$branch\]")
@@ -363,9 +457,9 @@ function __wtm_open
 
     # If no branch name provided, use fzf for interactive selection
     if test -z "$branch_name"
-        __wtm_interactive
+        __wtm_interactive -- $verbose $quiet
     else
-        __wtm_open_branch "$branch_name"
+        __wtm_open_branch "$branch_name" $verbose
     end
 end
 

@@ -9,16 +9,17 @@ complete -c wtm -s v -l verbose -d "Enable verbose output"
 complete -c wtm -s q -l quiet -d "Suppress informational output"
 
 # Subcommands
-complete -c wtm -n "__fish_use_subcommand" -a add -d "Create new branch and worktree"
-complete -c wtm -n "__fish_use_subcommand" -a remove -d "Remove worktree and branch"
-complete -c wtm -n "__fish_use_subcommand" -a rm -d "Remove worktree and branch"
-complete -c wtm -n "__fish_use_subcommand" -a list -d "List all worktrees"
-complete -c wtm -n "__fish_use_subcommand" -a ls -d "List all worktrees"
-complete -c wtm -n "__fish_use_subcommand" -a clean -d "Clean up stale worktrees"
-complete -c wtm -n "__fish_use_subcommand" -a init -d "Create .wt_hook.fish template"
-complete -c wtm -n "__fish_use_subcommand" -a main -d "Switch to default branch (main/master)"
-complete -c wtm -n "__fish_use_subcommand" -a open -d "Open existing worktree"
-complete -c wtm -n "__fish_use_subcommand" -a help -d "Show help message"
+complete -c wtm -n __fish_use_subcommand -a add -d "Create new branch and worktree"
+complete -c wtm -n __fish_use_subcommand -a remove -d "Remove worktree and branch"
+complete -c wtm -n __fish_use_subcommand -a rm -d "Remove worktree and branch"
+complete -c wtm -n __fish_use_subcommand -a list -d "List all worktrees"
+complete -c wtm -n __fish_use_subcommand -a ls -d "List all worktrees"
+complete -c wtm -n __fish_use_subcommand -a clean -d "Clean up stale worktrees"
+complete -c wtm -n __fish_use_subcommand -a cp -d "Copy files to another worktree"
+complete -c wtm -n __fish_use_subcommand -a init -d "Create .wt_hook.fish template"
+complete -c wtm -n __fish_use_subcommand -a main -d "Switch to default branch (main/master)"
+complete -c wtm -n __fish_use_subcommand -a open -d "Open existing worktree"
+complete -c wtm -n __fish_use_subcommand -a help -d "Show help message"
 
 complete -c wtm -n "__fish_seen_subcommand_from open" -xa "(__wtm_git_worktree_branches --exclude-current)"
 complete -c wtm -n "__fish_seen_subcommand_from open" -s h -l help -d "Show help for open command"
@@ -45,9 +46,13 @@ complete -c wtm -n "__fish_seen_subcommand_from clean" -s n -l dry-run -d "Show 
 complete -c wtm -n "__fish_seen_subcommand_from clean" -l days -x -d "Remove worktrees older than n days"
 complete -c wtm -n "__fish_seen_subcommand_from clean" -s h -l help -d "Show help for clean command"
 
+# Options for 'cp' subcommand
+complete -c wtm -n "set -l tokens (commandline -opc); and test (count \$tokens) -gt 2; and contains cp \$tokens[2]" -f
+# complete -c wtm -n "__fish_seen_subcommand_from cp" -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
+
 # Helper function to get worktree branches (excluding main/master)
 function __wtm_git_worktree_branches --description "Get worktree branches for completion"
-    argparse -s 'exclude-current' 'exclude-main' -- $argv
+    argparse -s exclude-current exclude-main -- $argv
 
     # Get current branch to exclude it
     set -l current_branch (git branch --show-current 2>/dev/null)
