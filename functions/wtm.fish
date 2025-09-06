@@ -148,13 +148,23 @@ function __wtm_operate_files -a operation
     set -l cwd (pwd)
 
     # Find worktree for target branch
-    set -l worktree_info (git worktree list | grep "\[$target_branch\]")
-    if test -z "$worktree_info"
+    set -l target_worktree_path
+    git worktree list --porcelain | while read -l key value
+        switch $key
+            case worktree
+                set current_path $value
+            case branch
+                if test (string replace 'refs/heads/' '' $value) = "$target_branch"
+                    set target_worktree_path $current_path
+                    break
+                end
+        end
+    end
+
+    if not set -q target_worktree_path
         echo "Error: No worktree found for branch '$target_branch'" >&2
         return 1
     end
-
-    set -l target_worktree_path (echo $worktree_info | string split -f1 ' ')
     set -l resolved_target_path (path resolve $target_worktree_path)
 
     for file in $files
