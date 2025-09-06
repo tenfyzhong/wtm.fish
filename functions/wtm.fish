@@ -383,7 +383,14 @@ function __wtm_open
 
     # If no branch name provided, use fzf for interactive selection
     if test -z "$branch_name"
-        __wtm_interactive -- --verbose=$verbose --quiet=$quiet
+        set -l flags_to_pass
+        if test "$verbose" = true
+            set -a flags_to_pass --verbose
+        end
+        if test "$quiet" = true
+            set -a flags_to_pass --quiet
+        end
+        __wtm_interactive $flags_to_pass
     else
         __wtm_open_branch "$branch_name" $verbose $quiet
     end
