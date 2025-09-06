@@ -16,6 +16,7 @@ complete -c wtm -n __fish_use_subcommand -a list -d "List all worktrees"
 complete -c wtm -n __fish_use_subcommand -a ls -d "List all worktrees"
 complete -c wtm -n __fish_use_subcommand -a clean -d "Clean up stale worktrees"
 complete -c wtm -n __fish_use_subcommand -a cp -d "Copy files to another worktree"
+complete -c wtm -n __fish_use_subcommand -a diff -d "Diff files with another worktree"
 complete -c wtm -n __fish_use_subcommand -a mv -d "Move files to another worktree"
 complete -c wtm -n __fish_use_subcommand -a init -d "Create .wt_hook.fish template"
 complete -c wtm -n __fish_use_subcommand -a main -d "Switch to default branch (main/master)"
@@ -51,6 +52,11 @@ complete -c wtm -n "__fish_seen_subcommand_from clean" -s h -l help -d "Show hel
 complete -c wtm -n "__fish_seen_subcommand_from cp" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
 complete -c wtm -n "__fish_seen_subcommand_from cp" -s h -l help -d "Show help for cp command"
 complete -c wtm -n "__fish_seen_subcommand_from cp" -F
+
+# Options for 'diff' subcommand
+complete -c wtm -n "__fish_seen_subcommand_from diff" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
+complete -c wtm -n "__fish_seen_subcommand_from diff" -s h -l help -d "Show help for diff command"
+complete -c wtm -n "__fish_seen_subcommand_from diff" -F
 
 # Options for 'mv' subcommand
 complete -c wtm -n "__fish_seen_subcommand_from mv" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"

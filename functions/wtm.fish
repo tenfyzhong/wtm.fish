@@ -49,6 +49,9 @@ function wtm --description "Git worktree manager with advanced features"
         case cp
             __wtm_cp $argv $flags_to_pass
 
+        case diff
+            __wtm_diff $argv $flags_to_pass
+
         case mv
             __wtm_mv $argv $flags_to_pass
 
@@ -79,11 +82,15 @@ function __wtm_operate_files -a operation
     argparse h/help v/verbose q/quiet 'b/branch=' -- $argv
     or return 1
 
+    set -e argv[1]
+
     # Handle help flag
     if set -ql _flag_help
-        if test "$operation" = "cp"
+        if test "$operation" = cp
             __wtm_cp_help
-        else
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
             __wtm_mv_help
         end
         return 0
@@ -94,8 +101,10 @@ function __wtm_operate_files -a operation
 
     if not set -ql _flag_branch
         echo "Error: Target branch name required, use -b/--branch flag" >&2
-        if test "$operation" = "cp"
+        if test "$operation" = cp
             __wtm_cp_help
+        else if test "$operation" = diff
+            __wtm_diff_help
         else
             __wtm_mv_help
         end
@@ -106,9 +115,11 @@ function __wtm_operate_files -a operation
 
     if test -z "$target_branch"
         echo "Error: Target branch name required" >&2
-        if test "$operation" = "cp"
+        if test "$operation" = cp
             __wtm_cp_help
-        else
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
             __wtm_mv_help
         end
         return 1
@@ -116,9 +127,11 @@ function __wtm_operate_files -a operation
 
     if test -z "$files"
         echo "Error: At least one file must be specified" >&2
-        if test "$operation" = "cp"
+        if test "$operation" = cp
             __wtm_cp_help
-        else
+        else if test "$operation" = diff
+            __wtm_diff_help
+        else if test "$operation" = mv
             __wtm_mv_help
         end
         return 1
@@ -154,18 +167,34 @@ function __wtm_operate_files -a operation
             continue
         end
 
-        set -l dest_dir (dirname "$dest_file")
-        if not test -d "$dest_dir"
-            mkdir -p "$dest_dir"
-            test "$verbose" = true; and echo "[INFO] Created directory: $dest_dir"
+        if test "$operation" = diff
+            if not test -f "$dest_file"
+                echo "[WARN] Destination file not found: $dest_file" >&2
+                continue
+            end
+        else
+            set -l dest_dir (dirname "$dest_file")
+            if not test -d "$dest_dir"
+                mkdir -p "$dest_dir"
+                test "$verbose" = true; and echo "[INFO] Created directory: $dest_dir"
+            end
         end
 
-        $operation "$source_file" "$dest_file"
+        if test "$operation" = diff
+            delta "$source_file" "$dest_file"
+        else
+            $operation "$source_file" "$dest_file"
+        end
     end
+    return 0
 end
 
 function __wtm_cp
     __wtm_operate_files cp $argv
+end
+
+function __wtm_diff
+    __wtm_operate_files diff $argv
 end
 
 function __wtm_mv
@@ -1047,8 +1076,8 @@ function __wtm_init
 
 # Example: Show creation info
 echo "[HOOK] Worktree hook executing..."
-echo "   Branch: $WTM_BRANCH_NAME (from $WTM_BASE_BRANCH)"
-echo "   Location: $WTM_WORKTREE_PATH"
+echo " Branch: $WTM_BRANCH_NAME (from $WTM_BASE_BRANCH)"
+echo " Location: $WTM_WORKTREE_PATH"
 
 # Files and directories to copy from project root
 set -l copy_items \
@@ -1067,7 +1096,7 @@ for item in $copy_items
     if test -e "$source"
         # Skip if target already exists
         if test -e "$target"
-            echo "       [SKIP] $item (already exists)"
+            echo " [SKIP] $item (already exists)"
             continue
         end
 
@@ -1077,16 +1106,16 @@ for item in $copy_items
                 case "node_modules" "vendor" ".git"
                     # Create symlink for large directories
                     ln -s "$source" "$target"
-                    echo "       [LINK] $item"
+                    echo " [LINK] $item"
                 case "*"
                     # Copy directory
                     cp -r "$source" "$target"
-                    echo "       [COPY] $item/"
+                    echo " [COPY] $item/"
             end
         else
             # Copy file
             cp "$source" "$target"
-            echo "       [COPY] $item"
+            echo " [COPY] $item"
         end
     end
 end
@@ -1109,7 +1138,7 @@ end
 # Create branch-specific config
 # echo "BRANCH=$WTM_BRANCH_NAME" >> .env.local
 
-echo "[OK] Hook completed successfully"" >.wtm_hook.fish
+echo "[OK] Hook completed successfully >.wtm_hook.fish
 
     chmod +x .wtm_hook.fish
 
@@ -1180,6 +1209,7 @@ function __wtm_help
     echo "  wtm clean [options]              - Clean up stale worktrees"
     echo "  wtm cp -b <branch> <files...>    - Copy files to another worktree"
     echo "  wtm mv -b <branch> <files...>    - Move files to another worktree"
+    echo "  wtm diff -b <branch> <files...>  - Diff files with another worktree"
     echo "  wtm init                         - Create .wtm_hook.fish template"
     echo "  wtm main                         - Switch to default branch (main/master)"
     echo ""
@@ -1204,6 +1234,7 @@ function __wtm_help
     echo "  wtm main                         - Switch to main branch"
     echo "  wtm cp -b feature/new-ui src/main.js - Copy files to another worktree"
     echo "  wtm mv -b feature/new-ui src/main.js - Move files to another worktree"
+    echo "  wtm diff -b feature/new-ui src/main.js - Diff files with another worktree"
 end
 
 # Handle help flag
@@ -1330,6 +1361,26 @@ function __wtm_cp_help
     echo "EXAMPLES:"
     echo "  wtm cp -b feature/new-ui src/main.js"
     echo "  wtm cp --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_diff_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm diff - Diff files with another worktree              │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm diff -b <branch> <file1> [file2 ...]"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -b, --branch <branch> The target worktree branch"
+    echo "  -h, --help            Show this help message"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Diff one or more files from the current worktree to the same relative path in another worktree."
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm diff -b feature/new-ui src/main.js"
+    echo "  wtm diff --branch hotfix/bug-123 README.md package.json"
 end
 
 function __wtm_mv_help
