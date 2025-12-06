@@ -55,6 +55,9 @@ function wtm --description "Git worktree manager with advanced features"
         case mv
             __wtm_mv $argv $flags_to_pass
 
+        case hook
+            __wtm_hook $argv $flags_to_pass
+
         case init
             __wtm_init $argv $flags_to_pass
 
@@ -213,6 +216,223 @@ end
 
 function __wtm_mv
     __wtm_operate_files mv $argv
+end
+
+# Run hooks on existing worktrees
+function __wtm_hook
+    argparse a/all h/help v/verbose q/quiet -- $argv
+    or return 1
+
+    # Handle help flag
+    if set -ql _flag_help
+        __wtm_hook_help
+        return 0
+    end
+
+    set -l verbose (set -ql _flag_verbose; and echo true; or echo false)
+    set -l quiet (set -ql _flag_quiet; and echo true; or echo false)
+
+    set -l branch_name $argv[1]
+
+    # Check if we're in a Git repository
+    set -l repo_root (git rev-parse --show-toplevel 2>/dev/null)
+    if test -z "$repo_root"
+        echo "Error: Not in a Git repository" >&2
+        return 1
+    end
+
+    # Get project root (main repository) - use repo_root we already computed
+    set -l project_root "$repo_root"
+
+    # Find hook file (same logic as __wtm_add)
+    set -l hook_file
+    if test -f "$project_root/.wtm_hook.fish"
+        set hook_file "$project_root/.wtm_hook.fish"
+    else if test -f "$HOME/.config/wtm/hook.fish"
+        set hook_file "$HOME/.config/wtm/hook.fish"
+    end
+
+    if test -z "$hook_file"
+        echo "Error: No hook file found" >&2
+        echo "Create .wtm_hook.fish in project root or ~/.config/wtm/hook.fish" >&2
+        return 1
+    end
+
+    # Function to execute hook for a single branch
+    function __wtm_execute_hook_for_branch -a branch -a hook_file_arg -a project_root_arg
+        # Find worktree path
+        set -l worktree_info (git worktree list | grep "\[$branch\]")
+        if test -z "$worktree_info"
+            echo "Error: No worktree found for branch '$branch'" >&2
+            return 1
+        end
+
+        set -l worktree_path (echo $worktree_info | string split -f1 ' ')
+        set -l resolved_path (path resolve $worktree_path)
+
+        if not test -d "$resolved_path"
+            echo "Error: Directory not found: $resolved_path" >&2
+            return 1
+        end
+
+        test "$quiet" = false; and echo "[HOOK] Running hook for branch: $branch"
+        test "$verbose" = true; and echo "  Worktree path: $resolved_path"
+
+        # Determine base branch (current branch in worktree)
+        set -l base_branch (git -C "$resolved_path" branch --show-current 2>/dev/null)
+        if test -z "$base_branch"
+            set base_branch "unknown"
+        end
+
+        # Set environment variables (same as __wtm_add)
+        set -gx WTM_WORKTREE_PATH "$resolved_path"
+        set -gx WTM_BRANCH_NAME "$branch"
+        set -gx WTM_BASE_BRANCH "$base_branch"
+        set -gx WTM_PROJECT_ROOT "$project_root_arg"
+        set -gx WTM_TIMESTAMP (date +"%Y-%m-%d %H:%M:%S")
+
+        # Execute hook
+        fish "$hook_file_arg"
+        set -l hook_status $status
+
+        # Clean up environment variables
+        set -e WTM_WORKTREE_PATH
+        set -e WTM_BRANCH_NAME
+        set -e WTM_BASE_BRANCH
+        set -e WTM_PROJECT_ROOT
+        set -e WTM_TIMESTAMP
+
+        if test $hook_status -ne 0
+            echo "[WARN] Hook execution failed for branch '$branch' with status $hook_status" >&2
+            return 1
+        else
+            test "$quiet" = false; and echo "[OK] Hook executed successfully for branch: $branch"
+            return 0
+        end
+    end
+
+    # Mode 1: --all flag
+    if set -ql _flag_all
+        test "$quiet" = false; and echo "[HOOK] Running hooks on all worktrees..."
+
+        set -l all_branches
+        git worktree list | while read -l line
+            set -l branch (echo $line | string match -r '\[([^\]]+)\]' | string split -f2 '[' | string trim -c ']')
+            if test -n "$branch"
+                set -a all_branches $branch
+            end
+        end
+
+        if test (count $all_branches) -eq 0
+            echo "Error: No worktrees found" >&2
+            return 1
+        end
+
+        set -l success_count 0
+        set -l total_count (count $all_branches)
+
+        for branch in $all_branches
+            __wtm_execute_hook_for_branch "$branch" "$hook_file" "$project_root"
+            if test $status -eq 0
+                set success_count (math $success_count + 1)
+            end
+        end
+
+        test "$quiet" = false; and echo "[SUMMARY] Successfully executed hooks on $success_count of $total_count worktrees"
+        return (test $success_count -eq $total_count; and echo 0; or echo 1)
+
+    # Mode 2: Specific branch provided
+    else if test -n "$branch_name"
+        __wtm_execute_hook_for_branch "$branch_name" "$hook_file"
+        return $status
+
+    # Mode 3: Interactive selection (default)
+    else
+        # Check if fzf is available
+        if not command -sq fzf
+            echo "Error: fzf is not installed. Please install fzf to use interactive mode." >&2
+            echo "Alternatively, specify a branch: wtm hook <branch>" >&2
+            return 1
+        end
+
+        # Get worktree list for fzf
+        set -l worktrees (git worktree list 2>/dev/null)
+        if test -z "$worktrees"
+            echo "Error: No worktrees found" >&2
+            return 1
+        end
+
+        # Extract branch names for fzf display
+        set -l branch_names
+        for worktree in $worktrees
+            set -a branch_names (echo $worktree | string match -r '\[([^\]]+)\]' | string split -f2 '[' | string trim -c ']')
+        end
+
+        # Select branch with fzf (multi-select enabled)
+        set -l selected_branches (printf '%s\n' $branch_names | fzf \
+            --multi \
+            --preview-window="right:70%:wrap" \
+            --preview='
+                set -l branch {}
+                set -l line (git worktree list | grep "\[$branch\]")
+                set -l worktree_path (echo $line | string split -f1 " ")
+                set -l resolved_path (path resolve $worktree_path)
+
+                echo "╭───────────────────────────────────────────────────────────────────╮"
+                echo "│  Worktree Information                                             │"
+                echo "├───────────────────────────────────────────────────────────────────┤"
+                echo "│   Branch:  $branch"
+                echo "│   Path:    $resolved_path"
+                echo "╰───────────────────────────────────────────────────────────────────╯"
+                echo ""
+
+                # Show hook file that would be executed
+                set -l project_root (git rev-parse --show-toplevel)
+                set -l hook_file
+                if test -f "$project_root/.wtm_hook.fish"
+                    set hook_file "$project_root/.wtm_hook.fish"
+                else if test -f "$HOME/.config/wtm/hook.fish"
+                    set hook_file "$HOME/.config/wtm/hook.fish"
+                end
+
+                if test -n "$hook_file"
+                    echo "Hook file: $hook_file"
+                    echo ""
+                    echo "First 10 lines of hook file:"
+                    echo "(string repeat -n 50 "─")"
+                    head -10 "$hook_file" | string replace -r "^" "  "
+                else
+                    echo "No hook file found"
+                end
+            ' \
+            --header="╭────────────────────────────────────────────────────────────────────╮
+│  Select worktrees to run hooks on (TAB to select multiple)        │
+│  ↑/↓ Navigate  ⏎ Execute  ^C Cancel                               │
+╰────────────────────────────────────────────────────────────────────╯" \
+            --border=rounded \
+            --height=80% \
+            --layout=reverse \
+            --prompt="> " \
+            --ansi)
+
+        if test -z "$selected_branches"
+            echo Cancelled
+            return 0
+        end
+
+        set -l success_count 0
+        set -l total_count (count $selected_branches)
+
+        for branch in $selected_branches
+            __wtm_execute_hook_for_branch "$branch" "$hook_file" "$project_root"
+            if test $status -eq 0
+                set success_count (math $success_count + 1)
+            end
+        end
+
+        test "$quiet" = false; and echo "[SUMMARY] Successfully executed hooks on $success_count of $total_count selected worktrees"
+        return (test $success_count -eq $total_count; and echo 0; or echo 1)
+    end
 end
 
 # Interactive worktree selection with fzf
@@ -645,7 +865,7 @@ function __wtm_add
             set -gx WTM_WORKTREE_PATH "$worktree_path"
             set -gx WTM_BRANCH_NAME "$branch_name"
             set -gx WTM_BASE_BRANCH "$base_branch"
-            set -gx WTM_PROJECT_ROOT "$project_root"
+            set -gx WTM_PROJECT_ROOT "$project_root_arg"
             set -gx WTM_TIMESTAMP (date +"%Y-%m-%d %H:%M:%S")
 
             fish "$hook_file"
@@ -1234,6 +1454,7 @@ function __wtm_help
     echo "  wtm diff -b <branch> <files...>  - Diff files with another worktree"
     echo "  wtm init                         - Create .wtm_hook.fish template"
     echo "  wtm main                         - Switch to default branch (main/master)"
+    echo "  wtm hook [<branch>]              - Run hooks on existing worktrees"
     echo ""
     echo "GLOBAL OPTIONS:"
     echo "  -h, --help                      - Show this help message"
@@ -1249,6 +1470,9 @@ function __wtm_help
     echo "  -n, --dry-run                   - Show what would be removed"
     echo "  --days <n>                      - Remove worktrees older than n days"
     echo ""
+    echo "HOOK OPTIONS:"
+    echo "  -a, --all                       - Run hooks on all worktrees"
+    echo ""
     echo "EXAMPLES:"
     echo "  wtm                              - Select worktree interactively"
     echo "  wtm add feature/new-ui          - Create new feature branch"
@@ -1257,6 +1481,7 @@ function __wtm_help
     echo "  wtm cp -b feature/new-ui src/main.js - Copy files to another worktree"
     echo "  wtm mv -b feature/new-ui src/main.js - Move files to another worktree"
     echo "  wtm diff -b feature/new-ui src/main.js - Diff files with another worktree"
+    echo "  wtm hook --all                       - Run hooks on all worktrees"
 end
 
 # Handle help flag
@@ -1423,6 +1648,43 @@ function __wtm_mv_help
     echo "EXAMPLES:"
     echo "  wtm mv -b feature/new-ui src/main.js"
     echo "  wtm mv --branch hotfix/bug-123 README.md package.json"
+end
+
+function __wtm_hook_help
+    echo "╭──────────────────────────────────────────────────────────╮"
+    echo "│ wtm hook - Run hooks on existing worktrees               │"
+    echo "╰──────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "USAGE:"
+    echo "  wtm hook [<branch>]"
+    echo "  wtm hook --all"
+    echo ""
+    echo "OPTIONS:"
+    echo "  -a, --all            Run hooks on all worktrees"
+    echo "  -h, --help           Show this help message"
+    echo "  -v, --verbose        Show detailed output"
+    echo "  -q, --quiet          Suppress non-error output"
+    echo ""
+    echo "DESCRIPTION:"
+    echo "  Run hooks on existing worktrees. Hooks are Fish scripts that can"
+    echo "  automate setup tasks like copying environment files, creating"
+    echo "  symlinks, or running initialization commands."
+    echo ""
+    echo "  If no branch is specified, opens an interactive fzf interface to"
+    echo "  select worktree(s). Use TAB to select multiple worktrees."
+    echo ""
+    echo "  Hooks receive these environment variables:"
+    echo "  - WTM_WORKTREE_PATH: Path to the worktree"
+    echo "  - WTM_BRANCH_NAME: Name of the branch"
+    echo "  - WTM_BASE_BRANCH: Current branch in the worktree"
+    echo "  - WTM_PROJECT_ROOT: Path to the original project root"
+    echo "  - WTM_TIMESTAMP: Current timestamp"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  wtm hook                     # Interactive selection"
+    echo "  wtm hook feature/new-ui      # Run hook on specific branch"
+    echo "  wtm hook --all               # Run hooks on all worktrees"
+    echo "  wtm hook --all --verbose     # Run on all with detailed output"
 end
 
 function __wtm_init_help

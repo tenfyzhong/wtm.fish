@@ -21,6 +21,7 @@ complete -c wtm -n __fish_use_subcommand -a mv -d "Move files to another worktre
 complete -c wtm -n __fish_use_subcommand -a init -d "Create .wt_hook.fish template"
 complete -c wtm -n __fish_use_subcommand -a main -d "Switch to default branch (main/master)"
 complete -c wtm -n __fish_use_subcommand -a open -d "Open existing worktree"
+complete -c wtm -n __fish_use_subcommand -a hook -d "Run hooks on existing worktrees"
 complete -c wtm -n __fish_use_subcommand -a help -d "Show help message"
 
 complete -c wtm -n "__fish_seen_subcommand_from open" -xa "(__wtm_git_worktree_branches --exclude-current)"
@@ -62,6 +63,11 @@ complete -c wtm -n "__fish_seen_subcommand_from diff" -F
 complete -c wtm -n "__fish_seen_subcommand_from mv" -s b -l branch -xa "(__wtm_git_worktree_branches --exclude-current)" -d "Target branch"
 complete -c wtm -n "__fish_seen_subcommand_from mv" -s h -l help -d "Show help for mv command"
 complete -c wtm -n "__fish_seen_subcommand_from mv" -F
+
+# Options for 'hook' subcommand
+complete -c wtm -n "__fish_seen_subcommand_from hook" -l all -d "Run hooks on all worktrees"
+complete -c wtm -n "__fish_seen_subcommand_from hook" -s h -l help -d "Show help for hook command"
+complete -c wtm -n "__fish_seen_subcommand_from hook" -xa "(__wtm_git_worktree_branches)" -d "Branch to run hook on"
 
 # Helper function to get worktree branches (excluding main/master)
 function __wtm_git_worktree_branches --description "Get worktree branches for completion"

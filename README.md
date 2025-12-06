@@ -138,6 +138,31 @@ Create a `.wtm_hook.fish` file in the current repository for project-specific ho
 wtm init
 ```
 
+### Run Hooks on Existing Worktrees
+
+Run hooks on existing worktrees to re-execute setup tasks like copying environment files, creating symlinks, or running initialization commands.
+
+```fish
+# Interactive selection (opens fzf interface)
+wtm hook
+
+# Run hook on specific branch
+wtm hook feature/new-ui
+
+# Run hooks on all worktrees
+wtm hook --all
+
+# Run on all worktrees with verbose output
+wtm hook --all --verbose
+```
+
+Hooks receive these environment variables:
+- `WTM_WORKTREE_PATH` - Path to the worktree
+- `WTM_BRANCH_NAME` - Name of the branch
+- `WTM_BASE_BRANCH` - Current branch in the worktree
+- `WTM_PROJECT_ROOT` - Path to the original project root
+- `WTM_TIMESTAMP` - Current timestamp
+
 ## Command Reference
 
 | Command | Description |
@@ -153,6 +178,7 @@ wtm init
 | `wtm diff -b <branch> <files...>` | Diff files with another worktree |
 | `wtm init` | Create a project-specific hook template (`.wtm_hook.fish`) |
 | `wtm main` | Switch to main/master branch |
+| `wtm hook [<branch>]` | Run hooks on existing worktrees (interactive if no branch specified) |
 
 ### Global Options
 
@@ -182,7 +208,7 @@ wtm init
 
 ## Hook System
 
-The hook system allows you to run custom commands after creating a new worktree. This is useful for:
+The hook system allows you to run custom commands after creating a new worktree. Hooks can also be run on existing worktrees using `wtm hook`. This is useful for:
 
 - Copying environment files
 - Installing dependencies
