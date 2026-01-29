@@ -285,6 +285,7 @@ wtm clean --days 14
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+See `AGENTS.md` for repository guidelines and contributor expectations.
 
 ## License
 
