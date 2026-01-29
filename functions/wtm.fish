@@ -722,15 +722,15 @@ function __wtm_add
     test "$verbose" = true; and echo "Changed to repository root: $repo_root"
 
     # Determine worktree directory
-    # Create wtm_data directory in .git
-    set -l wtm_data_dir "$git_dir_resolved/wtm_data"
-    if not test -d "$wtm_data_dir"
-        mkdir -p "$wtm_data_dir"
-        test "$verbose" = true; and echo "Created directory: $wtm_data_dir"
+    # Create wtm directory in .git
+    set -l wtm_dir "$git_dir_resolved/wtm"
+    if not test -d "$wtm_dir"
+        mkdir -p "$wtm_dir"
+        test "$verbose" = true; and echo "Created directory: $wtm_dir"
     end
 
     # Use branch name for directory
-    set -l worktree_path "$wtm_data_dir/$branch_name"
+    set -l worktree_path "$wtm_dir/$branch_name"
 
     # Get base branch (default to main)
     set -l base_branch
@@ -1082,8 +1082,8 @@ function __wtm_remove
 
         # Clean up empty parent directories
         set -l parent_dir (dirname "$resolved_path")
-        set -l wtm_data_dir (path resolve (git rev-parse --git-common-dir)/wtm_data)
-        while test "$parent_dir" != "$wtm_data_dir" -a "$parent_dir" != /
+        set -l wtm_dir (path resolve (git rev-parse --git-common-dir)/wtm)
+        while test "$parent_dir" != "$wtm_dir" -a "$parent_dir" != /
             if test (count (ls "$parent_dir")) -eq 0
                 test "$verbose" = true; and echo "Removing empty directory: $parent_dir"
                 rmdir "$parent_dir" 2>/dev/null
