@@ -28,7 +28,7 @@ This repository provides the `wtm` Fish shell command for managing Git worktrees
 
 ## Architecture Overview
 - `wtm` dispatches subcommands to helper functions that wrap `git worktree` and fzf-based selection.
-- Worktrees are stored under `.git/wtm_data/` in each repository.
+- Worktrees are stored under `.git/wtm/` in each repository.
 - Hooks run from `.wtm_hook.fish` (project) or `~/.config/wtm/hook.fish` (global), with project hooks taking priority.
 
 ## Commit & Pull Request Guidelines

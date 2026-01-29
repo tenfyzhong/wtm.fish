@@ -57,7 +57,7 @@ This opens an fzf interface showing:
 
 ### Create a New Worktree
 
-Worktrees are stored in the `.git/wtm_data/` directory of your repository.
+Worktrees are stored in the `.git/wtm/` directory of your repository.
 
 ```fish
 # Create from main branch (default)
